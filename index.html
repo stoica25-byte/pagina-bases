@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oracle SQL & PL/SQL Study Laboratory</title>
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside id="app-sidebar">
+    <div class="sidebar-header">
+      <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+        <div class="logo-icon" style="flex-shrink:0;">OR</div>
+        <div class="logo-text-wrapper">
+          <div class="logo-text">Oracle Lab</div>
+          <div class="logo-subtitle">Estudio BD</div>
+        </div>
+      </div>
+      <button class="toggle-nav-btn" id="nav-toggle" onclick="toggleSidebar()" title="Plegar / Desplegar Menú">
+        <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg>
+      </button>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"></path></svg>
+        <span>Panel General</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('sql-playground')" id="nav-sql-playground">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <span>Playground SQL</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('plsql-lab')" id="nav-plsql-lab">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+        <span>Laboratorio PL/SQL</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('norm-dcl')" id="nav-norm-dcl">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        <span>Normalización & DCL</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('cheatsheets')" id="nav-cheatsheets">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+        <span>Chuletas / Teoría</span>
+      </div>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <div class="footer-text">Examen Práctico 3ª EV</div>
+      <div class="footer-text" style="margin-top: 4px;">Cuaderno: Bd_3ev</div>
+    </div>
+  </aside>
+
+  <!-- Main Area -->
+  <main>
+    <header>
+      <div class="page-title" id="current-page-title">Panel General de Estudio</div>
+      <div class="header-status">
+        <div class="progress-container">
+          <span class="progress-text">Progreso:</span>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="global-progress-bar"></div>
+          </div>
+          <span class="progress-text" id="global-progress-percent">0%</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- TAB 1: DASHBOARD -->
+    <div class="tab-panel active" id="panel-dashboard">
+      <div class="card welcome-banner">
+        <div class="welcome-text">
+          <span class="badge-topic">Oracle Database</span>
+          <h1>¡Hola! Prepárate para el examen práctico de la 3ª evaluación</h1>
+          <p>Este panel interactivo recopila todos los ejercicios prácticos e información de tu cuaderno <strong>Bd_3ev</strong>. Tienes disponibles laboratorios de consultas SQL reales sobre los esquemas de tu clase (esquema SCOTT y la base de datos de la NBA) y simulaciones de bloques PL/SQL.</p>
+        </div>
+      </div>
+      
+      <div class="dashboard-grid">
+        <!-- left stats/list -->
+        <div>
+          <div class="card">
+            <h2 class="card-title">
+              <svg style="width:20px;height:20px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+              Objetivos del Examen Práctico (Extraídos de Bd_3ev)
+            </h2>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+              <div style="display:flex; gap: 15px; align-items:flex-start;">
+                <span class="status-badge success">UD08</span>
+                <div>
+                  <h4 style="color:white; margin-bottom:4px;">Manipulación de Datos (DML)</h4>
+                  <p style="font-size:0.85rem; color:var(--text-secondary);">Sentencias <code>INSERT</code>, <code>UPDATE</code> y <code>DELETE</code>. Uso de subconsultas avanzadas para calcular aumentos, rebajas y autoincremento de claves primarias usando <code>MAX(ID)+1</code>.</p>
+                </div>
+              </div>
+              <div style="display:flex; gap: 15px; align-items:flex-start; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <span class="status-badge success">UD09</span>
+                <div>
+                  <h4 style="color:white; margin-bottom:4px;">Seguridad (DCL) y Diccionario de Datos</h4>
+                  <p style="font-size:0.85rem; color:var(--text-secondary);">Vistas (<code>CREATE OR REPLACE VIEW</code>), sinónimos, índices y secuencias. Gestión de usuarios (creación con tablespaces, cuotas) y asignación de privilegios (<code>GRANT</code> / <code>REVOKE</code>).</p>
+                </div>
+              </div>
+              <div style="display:flex; gap: 15px; align-items:flex-start; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <span class="status-badge success">UD10</span>
+                <div>
+                  <h4 style="color:white; margin-bottom:4px;">Procedimientos y Funciones PL/SQL</h4>
+                  <p style="font-size:0.85rem; color:var(--text-secondary);">Escribir procedimientos y funciones en Oracle. Control del flujo del programa (<code>IF</code>, <code>LOOP</code>, <code>WHILE</code>), paso de parámetros (<code>IN</code>, <code>OUT</code>, <code>DEFAULT</code>), <code>SELECT INTO</code> y gestión de excepciones (errores).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- right sidebar summary -->
+        <div>
+          <div class="card" style="text-align: center;">
+            <h2 class="card-title" style="justify-content: center; margin-bottom: 10px;">Tu Rendimiento</h2>
+            <div style="font-size: 3rem; font-weight: 800; color: white; font-family: 'Outfit', sans-serif; margin: 15px 0;" id="dash-progress-text">0/20</div>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom: 20px;">Ejercicios de Laboratorio Completados con éxito</p>
+            <button class="btn btn-primary" onclick="switchTab('sql-playground')" style="width: 100%; justify-content: center;">Comenzar a Practicar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: SQL PLAYGROUND -->
+    <div class="tab-panel" id="panel-sql-playground">
+      <div class="lab-container">
+        <!-- Exercise List -->
+        <div class="lab-sidebar">
+          <div class="lab-sidebar-header">
+            <h3 style="color:white; font-size:0.95rem; margin-bottom:6px;">Ejercicios de SQL (DML)</h3>
+            <p style="font-size:0.75rem; color:var(--text-secondary);">Selecciona una tarea para cargarla en el editor.</p>
+          </div>
+          <div class="exercise-list" id="sql-exercise-list">
+            <!-- Dynamic items loaded via JavaScript -->
+          </div>
+        </div>
+        
+        <!-- Workspace -->
+        <div class="lab-workspace">
+          <!-- MIDDLE: Split screen: Editor (Left) & DB Tables (Right) -->
+          <div class="split-workspace">
+            <!-- Editor -->
+            <div class="card editor-card">
+              <div class="editor-header">
+                <div class="editor-title">
+                  <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                  Consola SQL (Oracle Dialect)
+                </div>
+                <div class="editor-actions">
+                  <button class="btn btn-secondary btn-icon" onclick="openInstructionsModal()" title="Ver Instrucciones y Solución">
+                    <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Instrucciones</span>
+                  </button>
+                  <button class="btn btn-secondary" onclick="resetDbTables()">Reiniciar Tablas</button>
+                  <button class="btn btn-primary" onclick="executeSQLQuery()">Ejecutar Query</button>
+                </div>
+              </div>
+              <div class="editor-body">
+                <textarea id="sql-editor" class="editor-textarea">SELECT * FROM emp;</textarea>
+              </div>
+            </div>
+            
+            <!-- DB Tables viewer -->
+            <div class="card table-viewer-card">
+              <div class="table-tabs" id="db-table-tabs">
+                <button class="table-tab-btn active" onclick="showDbTable('emp')">EMP</button>
+                <button class="table-tab-btn" onclick="showDbTable('dept')">DEPT</button>
+                <button class="table-tab-btn" onclick="showDbTable('salgrade')">SALGRADE</button>
+                <button class="table-tab-btn" onclick="showDbTable('equipos')">EQUIPOS</button>
+                <button class="table-tab-btn" onclick="showDbTable('jugadores')">JUGADORES</button>
+                <button class="table-tab-btn" onclick="showDbTable('estadisticas')">ESTADISTICAS</button>
+              </div>
+              <div class="table-data-wrapper" id="table-data-container">
+                <!-- Dynamic tables loaded here -->
+              </div>
+            </div>
+          </div>
+          
+          <!-- BOTTOM: Console -->
+          <div class="card console-card">
+            <div class="editor-header" style="height:35px; background:rgba(0,0,0,0.2);">
+              <div class="editor-title" style="font-size:0.75rem;">Consola de Resultados</div>
+            </div>
+            <div class="console-output" id="sql-console">Listo para recibir consultas...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: PL/SQL LAB -->
+    <div class="tab-panel" id="panel-plsql-lab">
+      <div class="lab-container">
+        <!-- Exercise List -->
+        <div class="lab-sidebar">
+          <div class="lab-sidebar-header">
+            <h3 style="color:white; font-size:0.95rem; margin-bottom:6px;">Ejercicios PL/SQL</h3>
+            <p style="font-size:0.75rem; color:var(--text-secondary);">Selecciona un ejercicio de programación Oracle.</p>
+          </div>
+          <div class="exercise-list" id="plsql-exercise-list">
+            <!-- Dynamic items loaded via JavaScript -->
+          </div>
+        </div>
+        
+        <!-- Workspace -->
+        <div class="lab-workspace">
+          <!-- Split screen: Editor & Test Case status -->
+          <div class="split-workspace">
+            <!-- Editor -->
+            <div class="card editor-card" style="height:100%;">
+              <div class="editor-header">
+                <div class="editor-title">
+                  <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                  Editor PL/SQL (Bloques / Rutinas)
+                </div>
+                <div class="editor-actions">
+                  <button class="btn btn-primary" onclick="compilePLSQL()">Compilar y Ejecutar</button>
+                </div>
+              </div>
+              <div class="editor-body">
+                <textarea id="plsql-editor" class="editor-textarea">DECLARE
+  v_saludo VARCHAR2(20) := 'Hola';
+BEGIN
+  DBMS_OUTPUT.PUT_LINE(v_saludo);
+END;</textarea>
+              </div>
+            </div>
+            
+            <!-- Side Help & Exercises Tests -->
+            <div class="card" style="display:flex; flex-direction:column; gap:20px; overflow:auto; height: 100%;">
+              <div>
+                <h3 class="card-title" style="margin-bottom:12px;">Enunciado del Ejercicio</h3>
+                <div style="background-color:rgba(255,255,255,0.02); padding:16px; border-radius:10px; border:1px solid var(--border-color);">
+                  <h4 style="color:white; font-size:0.9rem; margin-bottom:6px;" id="plsql-ex-title">Hola Mundo PL/SQL</h4>
+                  <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6; margin-bottom:0;" id="plsql-ex-instructions">Escribe un bloque PL/SQL básico que muestre el texto 'Hola' utilizando el paquete <code>DBMS_OUTPUT.PUT_LINE</code>.</p>
+                  <details class="solution-details" id="plsql-solution-details">
+                    <summary class="solution-summary">Ver Solución de Referencia</summary>
+                    <pre class="solution-code" id="plsql-exercise-solution">-- Selecciona un ejercicio para ver la solución</pre>
+                  </details>
+                  <button class="btn btn-secondary" onclick="openPLSQLCompareModal()" style="margin-top: 12px; width: 100%; justify-content: center; font-size: 0.75rem; padding: 6px 12px;">
+                    Comparar con Solución
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <h4 style="color:white; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Validador de Pruebas</h4>
+                <div style="display:flex; flex-direction:column; gap:10px;" id="plsql-test-results">
+                  <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.02); border-radius:6px; font-size:0.8rem;">
+                    <span>Sintaxis del bloque PL/SQL</span>
+                    <span class="status-badge pending">Pendiente</span>
+                  </div>
+                  <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.02); border-radius:6px; font-size:0.8rem;">
+                    <span>Salida esperada</span>
+                    <span class="status-badge pending">Pendiente</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- PL/SQL Console -->
+          <div class="card console-card">
+            <div class="editor-header" style="height:35px; background:rgba(0,0,0,0.2);">
+              <div class="editor-title" style="font-size:0.75rem;">Terminal DBMS_OUTPUT</div>
+            </div>
+            <div class="console-output" id="plsql-console">Compila un programa para ver la salida aquí...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: NORMALIZATION & DCL -->
+    <div class="tab-panel" id="panel-norm-dcl">
+      <div style="max-width: 1000px; margin: 0 auto;">
+        
+        <!-- DCL Section -->
+        <div class="card">
+          <h2 class="card-title">
+            <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            Ejercicios Prácticos DCL (Seguridad de Esquemas en Oracle)
+          </h2>
+          <p style="margin-bottom: 20px; font-size: 0.9rem; color: var(--text-secondary);">En el examen te pedirán crear usuarios, asignar cuotas sobre tablespaces, perfiles de seguridad, roles y conceder privilegios específicos. Resuelve los siguientes casos prácticos:</p>
+          
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <!-- DCL 1 -->
+            <div class="norm-exercise-box">
+              <h4 style="color:white; margin-bottom:8px;">Ejercicio 1: Crear Usuario con Tablespace y Cuota</h4>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">Escribe la sentencia en Oracle para crear un usuario llamado <code>GESTION_NBA</code> con contraseña <code>nba123</code>, asignándole por defecto el tablespace <code>USERS</code> y una cuota ilimitada sobre él.</p>
+              <input type="text" class="norm-input-field" id="dcl-ex1-input" placeholder="CREATE USER..." oninput="checkDCLAnswer(1)">
+              <div id="dcl-ex1-feedback" style="margin-top:10px; font-size:0.8rem; font-weight:600;"></div>
+            </div>
+            
+            <!-- DCL 2 -->
+            <div class="norm-exercise-box">
+              <h4 style="color:white; margin-bottom:8px;">Ejercicio 2: Conceder Privilegios de Objeto y Conexión</h4>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">Concede el permiso para conectarse a la base de datos (<code>CREATE SESSION</code>) y el permiso de lectura (<code>SELECT</code>) sobre la tabla <code>jugadores</code> al usuario <code>GESTION_NBA</code>.</p>
+              <input type="text" class="norm-input-field" id="dcl-ex2-input" placeholder="GRANT..." oninput="checkDCLAnswer(2)">
+              <div id="dcl-ex2-feedback" style="margin-top:10px; font-size:0.8rem; font-weight:600;"></div>
+            </div>
+            
+            <!-- DCL 3 -->
+            <div class="norm-exercise-box">
+              <h4 style="color:white; margin-bottom:8px;">Ejercicio 3: Crear Roles de Privilegio</h4>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">Escribe la sentencia para crear un rol llamado <code>ADMIN_NBA</code> para agrupar permisos de administración.</p>
+              <input type="text" class="norm-input-field" id="dcl-ex3-input" placeholder="CREATE ROLE..." oninput="checkDCLAnswer(3)">
+              <div id="dcl-ex3-feedback" style="margin-top:10px; font-size:0.8rem; font-weight:600;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Normalization Section -->
+        <div class="card">
+          <h2 class="card-title">
+            <svg style="width:22px;height:22px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            Normalización de Tablas Relacionales (Práctica)
+          </h2>
+          <p style="margin-bottom: 20px; font-size: 0.9rem; color: var(--text-secondary);">Estudia el estado de esta tabla y resuélvelo descomponiéndola en Tercera Forma Normal (3FN):</p>
+          
+          <div class="norm-exercise-box">
+            <h4 style="color:white; margin-bottom:8px;">Tabla de Partidos NBA Desnormalizada</h4>
+            <div class="norm-table-rep">
+              PARTIDOS_SUCIO (codigo_partido, equipo_local, ciudad_local, puntos_local, equipo_visitante, puntos_visitante)
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">Dependencias funcionales identificadas:<br>
+              • <code>codigo_partido</code> → determina todo el partido.<br>
+              • <code>equipo_local</code> → determina <code>ciudad_local</code> (Dependencia Transitiva).
+            </p>
+            
+            <h5 style="color:white; font-size:0.85rem; margin-bottom:10px;">Descompón la tabla escribiendo las estructuras resultantes en 3FN:</h5>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div>
+                <label style="font-size:0.75rem; color:var(--text-secondary);">Tabla 1 (Equipos y su Ciudad):</label>
+                <input type="text" class="norm-input-field" id="norm-t1-input" placeholder="EQUIPOS (nombre_equipo, ciudad)" oninput="checkNormAnswer()">
+              </div>
+              <div>
+                <label style="font-size:0.75rem; color:var(--text-secondary);">Tabla 2 (Partidos limpios):</label>
+                <input type="text" class="norm-input-field" id="norm-t2-input" placeholder="PARTIDOS (codigo_partido, equipo_local, puntos_local, ...)" oninput="checkNormAnswer()">
+              </div>
+            </div>
+            <div id="norm-feedback" style="margin-top:15px; font-size:0.85rem; font-weight:600;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 5: CHEATSHEETS -->
+    <div class="tab-panel" id="panel-cheatsheets">
+      <div class="topic-container">
+        <!-- Menu -->
+        <div class="topic-menu">
+          <div class="topic-menu-item active" onclick="switchTopic('plsql-basics')" id="topic-plsql-basics">Fundamentos PL/SQL</div>
+          <div class="topic-menu-item" onclick="switchTopic('cursors')" id="topic-cursors">Cursores en Oracle</div>
+          <div class="topic-menu-item" onclick="switchTopic('exceptions')" id="topic-exceptions">Control de Excepciones</div>
+          <div class="topic-menu-item" onclick="switchTopic('dcl-privileges')" id="topic-dcl-privileges">Seguridad (DCL)</div>
+          <div class="topic-menu-item" onclick="switchTopic('indexes-views')" id="topic-indexes-views">Índices y Vistas</div>
+        </div>
+        
+        <!-- Content Panels -->
+        <div class="card" style="flex:1;">
+          <!-- Topic: plsql-basics -->
+          <div class="topic-content-panel active" id="content-plsql-basics">
+            <h2>Estructura de un Bloque PL/SQL</h2>
+            <p>PL/SQL es un lenguaje procedimental estructurado en bloques. Un bloque se divide en tres secciones principales: Declaración, Ejecución y Excepciones.</p>
+            <pre class="code-block"><span class="hl-keyword">DECLARE</span>
+  <span class="hl-comment">-- Variables, constantes y cursores locales</span>
+  v_salario emp.sal%<span class="hl-type">TYPE</span>;
+  v_limite  <span class="hl-type">CONSTANT NUMBER</span> := 3000;
+<span class="hl-keyword">BEGIN</span>
+  <span class="hl-comment">-- Sentencias ejecutables (SQL y control)</span>
+  <span class="hl-keyword">SELECT</span> sal <span class="hl-keyword">INTO</span> v_salario <span class="hl-keyword">FROM</span> emp <span class="hl-keyword">WHERE</span> empno = 7839;
+  
+  <span class="hl-keyword">IF</span> v_salario > v_limite <span class="hl-keyword">THEN</span>
+    DBMS_OUTPUT.PUT_LINE('El salario supera el límite.');
+  <span class="hl-keyword">ELSE</span>
+    DBMS_OUTPUT.PUT_LINE('El salario es aceptable.');
+  <span class="hl-keyword">END IF</span>;
+<span class="hl-keyword">EXCEPTION</span>
+  <span class="hl-keyword">WHEN</span> NO_DATA_FOUND <span class="hl-keyword">THEN</span>
+    DBMS_OUTPUT.PUT_LINE('El empleado no existe.');
+<span class="hl-keyword">END</span>;</pre>
+          </div>
+          
+          <!-- Topic: cursors -->
+          <div class="topic-content-panel" id="content-cursors">
+            <h2>Uso de Cursores en Oracle</h2>
+            <p>Los cursores permiten procesar fila a fila el conjunto de resultados de una consulta multilínea. En Oracle se declaran en el bloque <code>DECLARE</code> y se controlan con <code>OPEN</code>, <code>FETCH</code> y <code>CLOSE</code>.</p>
+            <pre class="code-block"><span class="hl-keyword">DECLARE</span>
+  <span class="hl-keyword">CURSOR</span> c_empleados <span class="hl-keyword">IS</span>
+    <span class="hl-keyword">SELECT</span> ename, sal <span class="hl-keyword">FROM</span> emp <span class="hl-keyword">WHERE</span> deptno = 10;
+  v_nom emp.ename%<span class="hl-type">TYPE</span>;
+  v_sal emp.sal%<span class="hl-type">TYPE</span>;
+<span class="hl-keyword">BEGIN</span>
+  <span class="hl-keyword">OPEN</span> c_empleados;
+  <span class="hl-keyword">LOOP</span>
+    <span class="hl-keyword">FETCH</span> c_empleados <span class="hl-keyword">INTO</span> v_nom, v_sal;
+    <span class="hl-keyword">EXIT WHEN</span> c_empleados%<span class="hl-type">NOTFOUND</span>;
+    DBMS_OUTPUT.PUT_LINE(v_nom || ' gana: ' || v_sal);
+  <span class="hl-keyword">END LOOP</span>;
+  <span class="hl-keyword">CLOSE</span> c_empleados;
+<span class="hl-keyword">END</span>;</pre>
+          </div>
+          
+          <!-- Topic: exceptions -->
+          <div class="topic-content-panel" id="content-exceptions">
+            <h2>Control de Excepciones</h2>
+            <p>Las excepciones se utilizan para capturar errores de base de datos o lógicos en tiempo de ejecución. Oracle proporciona excepciones predefinidas comunes que puedes capturar por su nombre.</p>
+            <table class="db-table" style="margin-bottom: 20px;">
+              <thead>
+                <tr>
+                  <th>Excepción Oracle</th>
+                  <th>Causa Común</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code style="color:var(--accent-red);">NO_DATA_FOUND</code></td>
+                  <td>Un <code>SELECT INTO</code> no devolvió ninguna fila.</td>
+                </tr>
+                <tr>
+                  <td><code style="color:var(--accent-red);">TOO_MANY_ROWS</code></td>
+                  <td>Un <code>SELECT INTO</code> devolvió más de una fila.</td>
+                </tr>
+                <tr>
+                  <td><code style="color:var(--accent-red);">DUP_VAL_ON_INDEX</code></td>
+                  <td>Intento de insertar una clave primaria o única duplicada.</td>
+                </tr>
+                <tr>
+                  <td><code style="color:var(--accent-red);">ZERO_DIVIDE</code></td>
+                  <td>Intento de división por cero.</td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <pre class="code-block"><span class="hl-keyword">EXCEPTION</span>
+  <span class="hl-keyword">WHEN</span> DUP_VAL_ON_INDEX <span class="hl-keyword">THEN</span>
+    DBMS_OUTPUT.PUT_LINE('Error: El registro con esa clave ya existe.');
+  <span class="hl-keyword">WHEN</span> OTHERS <span class="hl-keyword">THEN</span>
+    DBMS_OUTPUT.PUT_LINE('Ocurrió un error inesperado.');</pre>
+          </div>
+          
+          <!-- Topic: dcl-privileges -->
+          <div class="topic-content-panel" id="content-dcl-privileges">
+            <h2>DCL: Gestión de Usuarios y Permisos</h2>
+            <p>El Lenguaje de Control de Datos sirve para dar o revocar accesos en el esquema de base de datos. Recuerda la sintaxis básica para crear perfiles, cuotas y otorgar privilegios:</p>
+            <pre class="code-block"><span class="hl-comment">-- 1. Crear un usuario con cuota en tablespace</span>
+<span class="hl-keyword">CREATE USER</span> test_user <span class="hl-keyword">IDENTIFIED BY</span> pass123
+<span class="hl-keyword">DEFAULT TABLESPACE</span> users
+<span class="hl-keyword">TEMPORARY TABLESPACE</span> temp;
+
+<span class="hl-keyword">ALTER USER</span> test_user <span class="hl-keyword">QUOTA</span> 10M <span class="hl-keyword">ON</span> users;
+
+<span class="hl-comment">-- 2. Conceder privilegios de sistema</span>
+<span class="hl-keyword">GRANT</span> CREATE SESSION, CREATE TABLE, CREATE VIEW <span class="hl-keyword">TO</span> test_user;
+
+<span class="hl-comment">-- 3. Conceder privilegios de objeto</span>
+<span class="hl-keyword">GRANT</span> SELECT, INSERT <span class="hl-keyword">ON</span> scott.emp <span class="hl-keyword">TO</span> test_user;
+
+<span class="hl-comment">-- 4. Quitar privilegios</span>
+<span class="hl-keyword">REVOKE</span> INSERT <span class="hl-keyword">ON</span> scott.emp <span class="hl-keyword">FROM</span> test_user;</pre>
+          </div>
+          
+          <!-- Topic: indexes-views -->
+          <div class="topic-content-panel" id="content-indexes-views">
+            <h2>Vistas, Índices y Secuencias</h2>
+            <p>Estructuras adicionales de Oracle que debes saber definir en la parte práctica de la UD09:</p>
+            <pre class="code-block"><span class="hl-comment">-- Crear o reemplazar una Vista</span>
+<span class="hl-keyword">CREATE OR REPLACE VIEW</span> vista_emp_dept10 <span class="hl-keyword">AS</span>
+  <span class="hl-keyword">SELECT</span> empno, ename, job, sal 
+  <span class="hl-keyword">FROM</span> emp 
+  <span class="hl-keyword">WHERE</span> deptno = 10;
+
+<span class="hl-comment">-- Crear un índice para acelerar búsquedas</span>
+<span class="hl-keyword">CREATE INDEX</span> idx_emp_apellido <span class="hl-keyword">ON</span> emp(ename);
+
+<span class="hl-comment">-- Crear y usar una secuencia autoincremental</span>
+<span class="hl-keyword">CREATE SEQUENCE</span> sec_dept_id
+  <span class="hl-keyword">START WITH</span> 50
+  <span class="hl-keyword">INCREMENT BY</span> 10;
+
+<span class="hl-comment">-- Ejemplo de inserción usando la secuencia</span>
+<span class="hl-keyword">INSERT INTO</span> dept <span class="hl-keyword">VALUES</span> (sec_dept_id.NEXTVAL, 'MKT', 'MADRID');</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Instrucciones del Ejercicio -->
+  <div id="instructions-modal" class="modal-overlay">
+    <div class="card modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Instrucciones del Ejercicio</h3>
+        <button class="modal-close-btn" onclick="closeInstructionsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="sql-exercise-instructions" style="margin-bottom:15px; font-weight: 500; color: white;">Selecciona un ejercicio de la lista lateral para comenzar.</p>
+        <details class="solution-details" id="sql-solution-details">
+          <summary class="solution-summary">Ver Solución de Referencia</summary>
+          <pre class="solution-code" id="sql-exercise-solution">-- Selecciona un ejercicio para ver la solución</pre>
+        </details>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeInstructionsModal()">Cerrar</button>
+        <button class="btn btn-primary" onclick="openCompareModal()">Comparar con Solución</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Comparar Código -->
+  <div id="compare-modal" class="modal-overlay">
+    <div class="card modal-card" style="max-width: 800px; width: 90%;">
+      <div class="modal-header">
+        <h3 class="modal-title">Comparación de Solución SQL</h3>
+        <button class="modal-close-btn" onclick="closeCompareModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="compare-container">
+          <div class="compare-pane">
+            <h4 class="compare-pane-title">Tu Código</h4>
+            <pre class="compare-code user-code" id="compare-user-code"></pre>
+          </div>
+          <div class="compare-pane">
+            <h4 class="compare-pane-title">Solución de Referencia</h4>
+            <pre class="compare-code reference-code" id="compare-ref-code"></pre>
+          </div>
+        </div>
+        <div id="compare-verdict" class="compare-verdict-box">
+          <!-- Comparison verdict loaded dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCompareModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- External scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/alasql@4.4.0/dist/alasql.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
