@@ -537,19 +537,14 @@ header {
 }
 
 .editor-header {
-  height: 50px;
+  height: 52px;
   background-color: rgba(10, 13, 20, 0.4);
   border-bottom: 1px solid var(--border-color);
-  padding: 0 20px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.editor-header::-webkit-scrollbar {
-  display: none;
+  overflow: hidden;
 }
 
 .editor-title {
@@ -568,7 +563,24 @@ header {
 .editor-actions {
   display: flex;
   gap: 6px;
-  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 4px;
+  margin-bottom: -4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.editor-actions::-webkit-scrollbar {
+  height: 4px;
+}
+
+.editor-actions::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
 }
 
 .btn {
