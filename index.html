@@ -146,12 +146,12 @@
           <div class="split-workspace">
             <!-- Editor -->
             <div class="card editor-card">
-              <div class="editor-header">
-                <div class="editor-title">
-                  <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                  Editor SQL
-                </div>
-                <div class="editor-actions">
+              <div class="editor-card-title" style="padding: 12px 16px 8px 16px; border-bottom: 1px solid var(--border-color); font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px; flex-shrink: 0;">
+                <svg style="width:16px;height:16px; color: var(--accent-red);" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                Editor SQL
+              </div>
+              <div class="editor-header" style="height: auto; padding: 6px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: flex-start;">
+                <div class="editor-actions" style="justify-content: flex-start; width: 100%;">
                   <button class="btn btn-secondary btn-icon" onclick="openInstructionsModal()" title="Ver Enunciado y Solución">
                     <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span>Instrucciones</span>
@@ -212,12 +212,12 @@
           <div class="split-workspace">
             <!-- Editor -->
             <div class="card editor-card" style="height:100%;">
-              <div class="editor-header">
-                <div class="editor-title">
-                  <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                  Editor PL/SQL
-                </div>
-                <div class="editor-actions">
+              <div class="editor-card-title" style="padding: 12px 16px 8px 16px; border-bottom: 1px solid var(--border-color); font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px; flex-shrink: 0;">
+                <svg style="width:16px;height:16px; color: var(--accent-red);" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                Editor PL/SQL
+              </div>
+              <div class="editor-header" style="height: auto; padding: 6px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: flex-start;">
+                <div class="editor-actions" style="justify-content: flex-start; width: 100%;">
                   <button class="btn btn-primary" onclick="compilePLSQL()">Compilar y Ejecutar</button>
                 </div>
               </div>
