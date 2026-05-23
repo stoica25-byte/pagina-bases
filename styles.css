@@ -544,6 +544,12 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.editor-header::-webkit-scrollbar {
+  display: none;
 }
 
 .editor-title {
@@ -562,6 +568,7 @@ header {
 .editor-actions {
   display: flex;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .btn {
