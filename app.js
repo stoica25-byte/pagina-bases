@@ -300,16 +300,29 @@ function switchTopic(topicId) {
 
 let activeTableTab = 'emp';
 
+function getActiveTableContainer() {
+  const isPLSQL = document.getElementById('panel-plsql-lab') && document.getElementById('panel-plsql-lab').classList.contains('active');
+  return {
+    container: document.getElementById(isPLSQL ? 'plsql-table-data-container' : 'table-data-container'),
+    tabsId: isPLSQL ? 'plsql-db-table-tabs' : 'db-table-tabs'
+  };
+}
+
 function showDbTable(tableName) {
   activeTableTab = tableName;
   
-  // Update active tab buttons
-  document.querySelectorAll('.table-tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.innerText.toLowerCase() === tableName.toLowerCase()) {
-      btn.classList.add('active');
-    }
-  });
+  const target = getActiveTableContainer();
+  if (!target.container) return;
+  
+  const tabsContainer = document.getElementById(target.tabsId);
+  if (tabsContainer) {
+    tabsContainer.querySelectorAll('.table-tab-btn').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.innerText.toLowerCase() === tableName.toLowerCase()) {
+        btn.classList.add('active');
+      }
+    });
+  }
 
   try {
     const data = alasql(`SELECT * FROM ${tableName}`);
@@ -340,15 +353,15 @@ function showDbTable(tableName) {
       });
       html += '</tbody></table>';
       
-      document.getElementById('table-data-container').innerHTML = html;
+      target.container.innerHTML = html;
     } else {
-      document.getElementById('table-data-container').innerHTML = `
+      target.container.innerHTML = `
         <div style="color:var(--text-secondary); text-align:center; padding: 40px 0;">
           La tabla <strong>${tableName.toUpperCase()}</strong> está vacía o no tiene registros.
         </div>`;
     }
   } catch (err) {
-    document.getElementById('table-data-container').innerHTML = `
+    target.container.innerHTML = `
       <div style="color:var(--accent-red); text-align:center; padding: 40px 0;">
         Error al leer la tabla: ${err.message}
       </div>`;
@@ -375,13 +388,18 @@ function getTableNameFromDML(query) {
 function showDbTableDiff(tableName, beforeData, afterData) {
   activeTableTab = tableName;
   
-  // Update active tab buttons
-  document.querySelectorAll('.table-tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.innerText.toLowerCase() === tableName.toLowerCase()) {
-      btn.classList.add('active');
-    }
-  });
+  const target = getActiveTableContainer();
+  if (!target.container) return;
+
+  const tabsContainer = document.getElementById(target.tabsId);
+  if (tabsContainer) {
+    tabsContainer.querySelectorAll('.table-tab-btn').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.innerText.toLowerCase() === tableName.toLowerCase()) {
+        btn.classList.add('active');
+      }
+    });
+  }
 
   // Get columns
   let keys = [];
@@ -391,7 +409,7 @@ function showDbTableDiff(tableName, beforeData, afterData) {
     keys = Object.keys(beforeData[0]);
   } else {
     // Both empty
-    document.getElementById('table-data-container').innerHTML = `
+    target.container.innerHTML = `
       <div style="color:var(--text-secondary); text-align:center; padding: 40px 0;">
         La tabla <strong>${tableName.toUpperCase()}</strong> está vacía o no tiene registros.
       </div>`;
@@ -519,7 +537,7 @@ function showDbTableDiff(tableName, beforeData, afterData) {
   });
   html += '</tbody></table>';
   
-  document.getElementById('table-data-container').innerHTML = html;
+  target.container.innerHTML = html;
 }
 
 function resetDbTables() {
@@ -567,7 +585,7 @@ const sqlExercises = [
     unit: "UD08: DML & Subconsultas",
     difficulty: "medium",
     instructions: "Inserta un nuevo departamento en la tabla DEPT. Su código ('deptno') debe ser calculado como el valor máximo de los departamentos actuales + 10. Su nombre ('dname') debe ser 'MARKETING' y su localización ('loc') 'SEVILLA'.",
-    startingCode: "INSERT INTO dept (deptno, dname, loc) VALUES ((SELECT MAX(deptno) + 10 FROM dept), 'MARKETING', 'SEVILLA');",
+    startingCode: "INSERT INTO dept (deptno, dname, loc) VALUES ((SELECT ...), 'MARKETING', 'SEVILLA');",
     solution: "INSERT INTO dept (deptno, dname, loc) \nVALUES (\n  (SELECT MAX(deptno) + 10 FROM dept), \n  'MARKETING', \n  'SEVILLA'\n);",
     verify: () => {
       const row = alasql("SELECT * FROM dept WHERE dname = 'MARKETING'")[0];
@@ -640,7 +658,8 @@ const plsqlExercises = [
     startingCode: `DECLARE
   v_mensaje VARCHAR2(20) := 'Hola';
 BEGIN
-  DBMS_OUTPUT.PUT_LINE(v_mensaje);
+  -- Escribe tu código aquí para imprimir v_mensaje
+  NULL;
 END;`,
     solution: `DECLARE
   v_mensaje VARCHAR2(20) := 'Hola';
@@ -662,8 +681,8 @@ END;`,
   v_n2 NUMBER := 12;
   v_suma NUMBER;
 BEGIN
-  v_suma := v_n1 + v_n2;
-  DBMS_OUTPUT.PUT_LINE('Resultado: ' || v_suma);
+  -- Escribe tu código aquí para sumar v_n1 y v_n2, y mostrar 'Resultado: X'
+  NULL;
 END;`,
     solution: `DECLARE
   v_n1 NUMBER := 8;
@@ -685,9 +704,10 @@ END;`,
     instructions: "Diseña un bloque que simule revertir una cadena. Puedes declarar una variable con la palabra 'ORACLE' y utilizar lógica de asignación o impresión para mostrar la palabra al revés ('ELCARO').",
     startingCode: `DECLARE
   v_palabra VARCHAR2(20) := 'ORACLE';
-  v_reversa VARCHAR2(20) := 'ELCARO';
+  v_reversa VARCHAR2(20);
 BEGIN
-  DBMS_OUTPUT.PUT_LINE(v_reversa);
+  -- Escribe tu código aquí para asignar la palabra al revés a v_reversa y mostrarla
+  NULL;
 END;`,
     solution: `DECLARE
   v_palabra VARCHAR2(20) := 'ORACLE';
@@ -708,10 +728,8 @@ END;`,
     startingCode: `DECLARE
   v_nom emp.ename%TYPE;
 BEGIN
-  SELECT ename INTO v_nom FROM emp WHERE empno = 9999;
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    DBMS_OUTPUT.PUT_LINE('Empleado no encontrado');
+  -- Escribe tu código aquí para consultar, manejar excepción e imprimir
+  NULL;
 END;`,
     solution: `DECLARE
   v_nom emp.ename%TYPE;
@@ -736,8 +754,8 @@ END;`,
   v_ciudad equipos.ciudad%TYPE;
   v_conf equipos.conferencia%TYPE;
 BEGIN
-  SELECT ciudad, conferencia INTO v_ciudad, v_conf FROM equipos WHERE nombre = 'Kings';
-  DBMS_OUTPUT.PUT_LINE('Ciudad: ' || v_ciudad || ' Conferencia: ' || v_conf);
+  -- Escribe tu código aquí para hacer SELECT INTO e imprimir
+  NULL;
 END;`,
     solution: `DECLARE
   v_ciudad equipos.ciudad%TYPE;
@@ -757,10 +775,8 @@ END;`,
     difficulty: "hard",
     instructions: "Crea un bloque que intente insertar un entrenador con un código de entrenador ya existente en la tabla ENTRENADORES (por ejemplo, codigo = 1). Esto lanzará la excepción de clave única duplicada 'DUP_VAL_ON_INDEX'. Captúrala e imprime el mensaje 'Código duplicado'.",
     startingCode: `BEGIN
-  INSERT INTO entrenadores VALUES (1, 'Adelman Duplicado', 'Loyola', 'Kings');
-EXCEPTION
-  WHEN DUP_VAL_ON_INDEX THEN
-    DBMS_OUTPUT.PUT_LINE('Código duplicado');
+  -- Escribe tu código aquí para insertar, manejar DUP_VAL_ON_INDEX e imprimir
+  NULL;
 END;`,
     solution: `BEGIN
   INSERT INTO entrenadores (codigo, nombre, procedencia, nombre_equipo)
@@ -785,8 +801,8 @@ END;`,
   v_fecha_actual DATE := TO_DATE('2026-05-24', 'YYYY-MM-DD');
   v_anios NUMBER;
 BEGIN
-  v_anios := TRUNC((v_fecha_actual - v_fecha_alta) / 365.25);
-  DBMS_OUTPUT.PUT_LINE('Anios de servicio: ' || v_anios);
+  -- Escribe tu código aquí para calcular e imprimir los años transcurridos
+  NULL;
 END;`,
     solution: `DECLARE
   v_fecha_alta DATE := TO_DATE('1981-11-17', 'YYYY-MM-DD');
@@ -810,8 +826,8 @@ END;`,
   v_anios NUMBER := 44;
   v_trienios NUMBER;
 BEGIN
-  v_trienios := TRUNC(v_anios / 3);
-  DBMS_OUTPUT.PUT_LINE('Trienios: ' || v_trienios);
+  -- Escribe tu código aquí para calcular e imprimir los trienios (anios / 3)
+  NULL;
 END;`,
     solution: `DECLARE
   v_anios NUMBER := 44;
@@ -834,14 +850,8 @@ END;`,
   v_importe NUMBER := 88;
   v_50 NUMBER; v_20 NUMBER; v_10 NUMBER; v_5 NUMBER; v_2 NUMBER; v_1 NUMBER;
 BEGIN
-  v_50 := TRUNC(v_importe / 50); v_importe := MOD(v_importe, 50);
-  v_20 := TRUNC(v_importe / 20); v_importe := MOD(v_importe, 20);
-  v_10 := TRUNC(v_importe / 10); v_importe := MOD(v_importe, 10);
-  v_5 := TRUNC(v_importe / 5); v_importe := MOD(v_importe, 5);
-  v_2 := TRUNC(v_importe / 2); v_importe := MOD(v_importe, 2);
-  v_1 := v_importe;
-  
-  DBMS_OUTPUT.PUT_LINE('Billetes 50: ' || v_50 || ' Billetes 20: ' || v_20 || ' Billetes 10: ' || v_10 || ' Billetes 5: ' || v_5 || ' Monedas 2: ' || v_2 || ' Monedas 1: ' || v_1);
+  -- Escribe tu código aquí para realizar el desglose monetario usando TRUNC y MOD, y mostrar el desglose
+  NULL;
 END;`,
     solution: `DECLARE
   v_importe NUMBER := 88;
@@ -973,6 +983,11 @@ function selectSqlExercise(index) {
   
   // Reset database state dynamically on exercise select to prevent cross-contamination
   initDatabase();
+  
+  const sqlTableMap = ['dept', 'emp', 'dept', 'emp', 'emp', 'emp', 'estadisticas'];
+  if (sqlTableMap[index]) {
+    activeTableTab = sqlTableMap[index];
+  }
   showDbTable(activeTableTab);
   
   // Clear console
@@ -1004,6 +1019,11 @@ function selectPlsqlExercise(index) {
   
   // Reset database state dynamically on exercise select to prevent cross-contamination
   initDatabase();
+  
+  const plsqlTableMap = ['emp', 'emp', 'emp', 'emp', 'equipos', 'entrenadores', 'emp', 'emp', 'emp'];
+  if (plsqlTableMap[index]) {
+    activeTableTab = plsqlTableMap[index];
+  }
   showDbTable(activeTableTab);
   
   // Clear console
@@ -1368,7 +1388,7 @@ function compilePLSQL() {
     }
 
     // Handle INSERT/UPDATE statements in PL/SQL block
-    const insertMatch = cleanCode.match(/INSERT\s+INTO\s+(\w+)\s+VALUES\s*\((.*?)\)(?:;|$)/i);
+    const insertMatch = cleanCode.match(/INSERT\s+INTO\s+(\w+)\s*(?:\([^)]+\))?\s*VALUES\s*\(([\s\S]*?)\)(?:;|$)/i);
     if (insertMatch && !selectIntoMatch) {
       const table = insertMatch[1].toLowerCase();
       const vals = insertMatch[2].split(',');
@@ -1431,6 +1451,16 @@ function compilePLSQL() {
             variables[varName] = result;
           } catch (e) {
             console.warn("Assignment evaluation error:", e);
+          }
+        } else if (/^\s*(INSERT\s+INTO|UPDATE|DELETE\s+FROM)/i.test(statement)) {
+          try {
+            if (/INSERT\s+INTO\s+entrenadores/i.test(statement)) {
+              // Already handled in the insertMatch check
+            } else {
+              alasql(statement);
+            }
+          } catch (dmlErr) {
+            console.warn("Direct DML execution in PL/SQL block failed:", dmlErr);
           }
         }
       });

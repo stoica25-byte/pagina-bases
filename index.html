@@ -196,6 +196,7 @@
                 <button class="table-tab-btn" onclick="showDbTable('equipos')">EQUIPOS</button>
                 <button class="table-tab-btn" onclick="showDbTable('jugadores')">JUGADORES</button>
                 <button class="table-tab-btn" onclick="showDbTable('estadisticas')">ESTADISTICAS</button>
+                <button class="table-tab-btn" onclick="showDbTable('entrenadores')">ENTRENADORES</button>
               </div>
               <div class="table-data-wrapper" id="table-data-container">
                 <!-- Dynamic tables loaded here -->
@@ -262,41 +263,61 @@
               </div>
               <div class="editor-body">
                 <textarea id="plsql-editor" class="editor-textarea">DECLARE
-  v_saludo VARCHAR2(20) := 'Hola';
+  v_mensaje VARCHAR2(20) := 'Hola';
 BEGIN
-  DBMS_OUTPUT.PUT_LINE(v_saludo);
+  -- Escribe tu código aquí
+  NULL;
 END;</textarea>
               </div>
             </div>
             
-            <!-- Side Help & Exercises Tests -->
-            <div class="card" style="display:flex; flex-direction:column; gap:20px; overflow:auto; height: 100%;">
-              <div>
-                <h3 class="card-title" style="margin-bottom:12px;">Enunciado del Ejercicio</h3>
-                <div style="background-color:rgba(255,255,255,0.02); padding:16px; border-radius:10px; border:1px solid var(--border-color);">
-                  <h4 style="color:white; font-size:0.9rem; margin-bottom:6px;" id="plsql-ex-title">Hola Mundo PL/SQL</h4>
-                  <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6; margin-bottom:0;" id="plsql-ex-instructions">Escribe un bloque PL/SQL básico que muestre el texto 'Hola' utilizando el paquete <code>DBMS_OUTPUT.PUT_LINE</code>.</p>
-                  <details class="solution-details" id="plsql-solution-details">
-                    <summary class="solution-summary">Ver Solución de Referencia</summary>
-                    <pre class="solution-code" id="plsql-exercise-solution">-- Selecciona un ejercicio para ver la solución</pre>
-                  </details>
-                  <button class="btn btn-secondary" onclick="openPLSQLCompareModal()" style="margin-top: 12px; width: 100%; justify-content: center; font-size: 0.75rem; padding: 6px 12px;">
-                    Comparar con Solución
-                  </button>
+            <!-- Side Help & Exercises Tests wrapper -->
+            <div style="display:flex; flex-direction:column; gap:20px; height: 100%; min-height: 0;">
+              <!-- Instructions & Tests Card -->
+              <div class="card" style="flex: 1.2; display:flex; flex-direction:column; gap:16px; overflow:auto; min-height: 0;">
+                <div>
+                  <h3 class="card-title" style="margin-bottom:10px;">Enunciado del Ejercicio</h3>
+                  <div style="background-color:rgba(255,255,255,0.02); padding:12px; border-radius:10px; border:1px solid var(--border-color);">
+                    <h4 style="color:white; font-size:0.9rem; margin-bottom:6px;" id="plsql-ex-title">Hola Mundo PL/SQL</h4>
+                    <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6; margin-bottom:0;" id="plsql-ex-instructions">Escribe un bloque PL/SQL básico que muestre el texto 'Hola' utilizando el paquete <code>DBMS_OUTPUT.PUT_LINE</code>.</p>
+                    <details class="solution-details" id="plsql-solution-details">
+                      <summary class="solution-summary">Ver Solución de Referencia</summary>
+                      <pre class="solution-code" id="plsql-exercise-solution">-- Selecciona un ejercicio para ver la solución</pre>
+                    </details>
+                    <button class="btn btn-secondary" onclick="openPLSQLCompareModal()" style="margin-top: 10px; width: 100%; justify-content: center; font-size: 0.75rem; padding: 6px 12px;">
+                      Comparar con Solución
+                    </button>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 style="color:white; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Validador de Pruebas</h4>
+                  <div style="display:flex; flex-direction:column; gap:8px;" id="plsql-test-results">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.02); border-radius:6px; font-size:0.8rem;">
+                      <span>Sintaxis del bloque PL/SQL</span>
+                      <span class="status-badge pending">Pendiente</span>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.02); border-radius:6px; font-size:0.8rem;">
+                      <span>Salida esperada</span>
+                      <span class="status-badge pending">Pendiente</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div>
-                <h4 style="color:white; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Validador de Pruebas</h4>
-                <div style="display:flex; flex-direction:column; gap:10px;" id="plsql-test-results">
-                  <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.02); border-radius:6px; font-size:0.8rem;">
-                    <span>Sintaxis del bloque PL/SQL</span>
-                    <span class="status-badge pending">Pendiente</span>
-                  </div>
-                  <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.02); border-radius:6px; font-size:0.8rem;">
-                    <span>Salida esperada</span>
-                    <span class="status-badge pending">Pendiente</span>
-                  </div>
+              <!-- DB Tables viewer for PL/SQL -->
+              <div class="card table-viewer-card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
+                <div class="table-tabs" id="plsql-db-table-tabs">
+                  <button class="table-tab-btn active" onclick="showDbTable('emp')">EMP</button>
+                  <button class="table-tab-btn" onclick="showDbTable('dept')">DEPT</button>
+                  <button class="table-tab-btn" onclick="showDbTable('salgrade')">SALGRADE</button>
+                  <button class="table-tab-btn" onclick="showDbTable('equipos')">EQUIPOS</button>
+                  <button class="table-tab-btn" onclick="showDbTable('jugadores')">JUGADORES</button>
+                  <button class="table-tab-btn" onclick="showDbTable('estadisticas')">ESTADISTICAS</button>
+                  <button class="table-tab-btn" onclick="showDbTable('entrenadores')">ENTRENADORES</button>
+                </div>
+                <div class="table-data-wrapper" id="plsql-table-data-container">
+                  <!-- Dynamic tables loaded here -->
                 </div>
               </div>
             </div>
