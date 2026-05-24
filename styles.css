@@ -772,6 +772,10 @@ header {
   overflow: hidden;
 }
 
+.split-workspace > * {
+  min-width: 0;
+}
+
 /* Table views styling */
 .table-viewer-card {
   display: flex;
