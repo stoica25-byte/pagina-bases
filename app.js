@@ -1429,6 +1429,7 @@ function insertSQLTemplate(type) {
   if (!type) return;
   const templates = {
     'inner-join': "SELECT e.ename, d.dname\nFROM emp e\nINNER JOIN dept d ON e.deptno = d.deptno;",
+    'join-using': "SELECT e.ename, d.dname\nFROM emp e\nINNER JOIN dept d USING deptno;",
     'left-join': "SELECT e.ename, d.dname\nFROM emp e\nLEFT JOIN dept d ON e.deptno = d.deptno;",
     'group-by': "SELECT deptno, COUNT(*) as total_empleados, AVG(sal) as salario_medio\nFROM emp\nGROUP BY deptno;",
     'subquery': "SELECT ename, sal\nFROM emp\nWHERE sal > (SELECT AVG(sal) FROM emp);"
