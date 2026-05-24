@@ -971,6 +971,10 @@ function selectSqlExercise(index) {
   
   renderExercises();
   
+  // Reset database state dynamically on exercise select to prevent cross-contamination
+  initDatabase();
+  showDbTable(activeTableTab);
+  
   // Clear console
   const consoleEl = document.getElementById('sql-console');
   consoleEl.innerText = `Cargado: ${ex.title}. Listo para ejecutar.`;
@@ -997,6 +1001,10 @@ function selectPlsqlExercise(index) {
   
   renderExercises();
   renderPlsqlTests();
+  
+  // Reset database state dynamically on exercise select to prevent cross-contamination
+  initDatabase();
+  showDbTable(activeTableTab);
   
   // Clear console
   const consoleEl = document.getElementById('plsql-console');
