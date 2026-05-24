@@ -190,6 +190,33 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  // Set up auto-save on edit
+  if (sqlSuccess && sqlEditor && typeof sqlEditor.on === 'function') {
+    sqlEditor.on("change", () => {
+      localStorage.setItem(`oracle_lab_sql_ex_${activeSqlExerciseIndex}`, sqlEditor.getValue());
+    });
+  } else {
+    const el = document.getElementById("sql-editor");
+    if (el) {
+      el.addEventListener("input", () => {
+        localStorage.setItem(`oracle_lab_sql_ex_${activeSqlExerciseIndex}`, el.value);
+      });
+    }
+  }
+
+  if (plsqlSuccess && plsqlEditor && typeof plsqlEditor.on === 'function') {
+    plsqlEditor.on("change", () => {
+      localStorage.setItem(`oracle_lab_plsql_ex_${activePlsqlExerciseIndex}`, plsqlEditor.getValue());
+    });
+  } else {
+    const el = document.getElementById("plsql-editor");
+    if (el) {
+      el.addEventListener("input", () => {
+        localStorage.setItem(`oracle_lab_plsql_ex_${activePlsqlExerciseIndex}`, el.value);
+      });
+    }
+  }
+
   // Set default view on load
   showDbTable('emp');
   renderExercises();
@@ -684,10 +711,24 @@ const exerciseCompletion = {
 
 // Render exercise sidebars
 function renderExercises() {
+  // Read search queries and difficulty filters
+  const sqlSearch = document.getElementById("sql-search") ? document.getElementById("sql-search").value.trim().toLowerCase() : "";
+  const sqlDiff = document.getElementById("sql-filter-diff") ? document.getElementById("sql-filter-diff").value : "all";
+
+  const plsqlSearch = document.getElementById("plsql-search") ? document.getElementById("plsql-search").value.trim().toLowerCase() : "";
+  const plsqlDiff = document.getElementById("plsql-filter-diff") ? document.getElementById("plsql-filter-diff").value : "all";
+
   // 1. Render SQL list
   const sqlList = document.getElementById("sql-exercise-list");
   sqlList.innerHTML = "";
   sqlExercises.forEach((ex, idx) => {
+    // Filter check
+    const matchesSearch = ex.title.toLowerCase().includes(sqlSearch) || 
+                          ex.unit.toLowerCase().includes(sqlSearch) || 
+                          ex.instructions.toLowerCase().includes(sqlSearch);
+    const matchesDiff = sqlDiff === "all" || ex.difficulty === sqlDiff;
+    if (!matchesSearch || !matchesDiff) return;
+
     const isCompleted = exerciseCompletion.sql[idx];
     const item = document.createElement("div");
     item.className = `exercise-item ${idx === activeSqlExerciseIndex ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
@@ -714,6 +755,13 @@ function renderExercises() {
   const plsqlList = document.getElementById("plsql-exercise-list");
   plsqlList.innerHTML = "";
   plsqlExercises.forEach((ex, idx) => {
+    // Filter check
+    const matchesSearch = ex.title.toLowerCase().includes(plsqlSearch) || 
+                          ex.unit.toLowerCase().includes(plsqlSearch) || 
+                          ex.instructions.toLowerCase().includes(plsqlSearch);
+    const matchesDiff = plsqlDiff === "all" || ex.difficulty === plsqlDiff;
+    if (!matchesSearch || !matchesDiff) return;
+
     const isCompleted = exerciseCompletion.plsql[idx];
     const item = document.createElement("div");
     item.className = `exercise-item ${idx === activePlsqlExerciseIndex ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
@@ -745,7 +793,14 @@ function selectSqlExercise(index) {
   document.getElementById("sql-exercise-instructions").innerText = ex.instructions;
   document.getElementById("sql-exercise-solution").innerText = ex.solution || "-- No hay solución definida";
   document.getElementById("sql-solution-details").removeAttribute("open");
-  sqlEditor.setValue(ex.startingCode);
+  
+  // Load saved code from localStorage, if exists, else load startingCode
+  const savedCode = localStorage.getItem(`oracle_lab_sql_ex_${index}`);
+  if (savedCode !== null) {
+    sqlEditor.setValue(savedCode);
+  } else {
+    sqlEditor.setValue(ex.startingCode);
+  }
   
   renderExercises();
   
@@ -764,7 +819,14 @@ function selectPlsqlExercise(index) {
   document.getElementById("plsql-ex-instructions").innerHTML = ex.instructions;
   document.getElementById("plsql-exercise-solution").innerText = ex.solution || "-- No hay solución definida";
   document.getElementById("plsql-solution-details").removeAttribute("open");
-  plsqlEditor.setValue(ex.startingCode);
+  
+  // Load saved code from localStorage, if exists, else load startingCode
+  const savedCode = localStorage.getItem(`oracle_lab_plsql_ex_${index}`);
+  if (savedCode !== null) {
+    plsqlEditor.setValue(savedCode);
+  } else {
+    plsqlEditor.setValue(ex.startingCode);
+  }
   
   renderExercises();
   renderPlsqlTests();
@@ -1359,5 +1421,100 @@ function toggleSidebar() {
         plsqlEditor.refresh();
       }
     }, 250);
+  }
+}
+
+// Templates helper functions
+function insertSQLTemplate(type) {
+  if (!type) return;
+  const templates = {
+    'inner-join': "SELECT e.ename, d.dname\nFROM emp e\nINNER JOIN dept d ON e.deptno = d.deptno;",
+    'left-join': "SELECT e.ename, d.dname\nFROM emp e\nLEFT JOIN dept d ON e.deptno = d.deptno;",
+    'group-by': "SELECT deptno, COUNT(*) as total_empleados, AVG(sal) as salario_medio\nFROM emp\nGROUP BY deptno;",
+    'subquery': "SELECT ename, sal\nFROM emp\nWHERE sal > (SELECT AVG(sal) FROM emp);"
+  };
+  const code = templates[type];
+  if (code) insertAtCursor(sqlEditor, code);
+}
+
+function insertPLSQLTemplate(type) {
+  if (!type) return;
+  const templates = {
+    'block': "DECLARE\n  v_variable VARCHAR2(100) := 'Valor';\nBEGIN\n  DBMS_OUTPUT.PUT_LINE(v_variable);\nEXCEPTION\n  WHEN OTHERS THEN\n    DBMS_OUTPUT.PUT_LINE('Error');\nEND;",
+    'cursor': "DECLARE\n  CURSOR c_emp IS SELECT ename, sal FROM emp;\n  v_name emp.ename%TYPE;\n  v_sal emp.sal%TYPE;\nBEGIN\n  OPEN c_emp;\n  LOOP\n    FETCH c_emp INTO v_name, v_sal;\n    EXIT WHEN c_emp%NOTFOUND;\n    DBMS_OUTPUT.PUT_LINE(v_name || ': ' || v_sal);\n  END LOOP;\n  CLOSE c_emp;\nEND;",
+    'exception': "BEGIN\n  -- Sentencias ejecutables\n  NULL;\nEXCEPTION\n  WHEN NO_DATA_FOUND THEN\n    DBMS_OUTPUT.PUT_LINE('No hay datos');\n  WHEN TOO_MANY_ROWS THEN\n    DBMS_OUTPUT.PUT_LINE('Demasiadas filas');\n  WHEN OTHERS THEN\n    DBMS_OUTPUT.PUT_LINE('Error inesperado');\nEND;",
+    'function': "CREATE OR REPLACE FUNCTION calcular_trienios(p_anios IN NUMBER)\nRETURN NUMBER IS\n  v_trienios NUMBER := 0;\nBEGIN\n  v_trienios := TRUNC(p_anios / 3);\n  RETURN v_trienios;\nEND;"
+  };
+  const code = templates[type];
+  if (code) insertAtCursor(plsqlEditor, code);
+}
+
+function insertAtCursor(editor, text) {
+  if (editor && typeof editor.getDoc === 'function') {
+    const doc = editor.getDoc();
+    const cursor = doc.getCursor();
+    doc.replaceRange(text, cursor);
+    editor.focus();
+  } else {
+    const el = document.getElementById(editor === sqlEditor ? "sql-editor" : "plsql-editor");
+    if (el) {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const currentVal = el.value;
+      el.value = currentVal.substring(0, start) + text + currentVal.substring(end);
+      el.focus();
+      el.selectionStart = el.selectionEnd = start + text.length;
+    }
+  }
+}
+
+// Restore starting code helpers
+function restoreSqlExerciseInitialCode() {
+  if (confirm("¿Estás seguro de que quieres restablecer el código al estado inicial? Perderás tus cambios.")) {
+    const ex = sqlExercises[activeSqlExerciseIndex];
+    if (ex) {
+      sqlEditor.setValue(ex.startingCode);
+      localStorage.setItem(`oracle_lab_sql_ex_${activeSqlExerciseIndex}`, ex.startingCode);
+    }
+  }
+}
+
+function restorePlsqlExerciseInitialCode() {
+  if (confirm("¿Estás seguro de que quieres restablecer el código al estado inicial? Perderás tus cambios.")) {
+    const ex = plsqlExercises[activePlsqlExerciseIndex];
+    if (ex) {
+      plsqlEditor.setValue(ex.startingCode);
+      localStorage.setItem(`oracle_lab_plsql_ex_${activePlsqlExerciseIndex}`, ex.startingCode);
+    }
+  }
+}
+
+// Visual ER diagram modal helpers
+function openSchemaModal() {
+  const modal = document.getElementById("schema-modal");
+  if (modal) modal.classList.add("active");
+}
+
+function closeSchemaModal() {
+  const modal = document.getElementById("schema-modal");
+  if (modal) modal.classList.remove("active");
+}
+
+function switchSchemaTab(schemaType) {
+  const scottBtn = document.getElementById("schema-tab-scott");
+  const nbaBtn = document.getElementById("schema-tab-nba");
+  const scottContent = document.getElementById("schema-content-scott");
+  const nbaContent = document.getElementById("schema-content-nba");
+  
+  if (schemaType === 'scott') {
+    if (scottBtn) scottBtn.classList.add("active");
+    if (nbaBtn) nbaBtn.classList.remove("active");
+    if (scottContent) scottContent.style.display = "block";
+    if (nbaContent) nbaContent.style.display = "none";
+  } else {
+    if (scottBtn) scottBtn.classList.remove("active");
+    if (nbaBtn) nbaBtn.classList.add("active");
+    if (scottContent) scottContent.style.display = "none";
+    if (nbaContent) nbaContent.style.display = "block";
   }
 }

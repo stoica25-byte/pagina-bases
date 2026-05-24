@@ -60,6 +60,10 @@
     <header>
       <div class="page-title" id="current-page-title">Panel General de Estudio</div>
       <div class="header-status">
+        <button class="btn btn-secondary" onclick="openSchemaModal()" style="padding: 6px 12px; font-size: 0.75rem; gap: 6px; border-radius: 20px; border-color: rgba(139, 92, 246, 0.3);">
+          <svg style="width:14px;height:14px; color:var(--accent-purple);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+          Modelo ER
+        </button>
         <div class="progress-container">
           <span class="progress-text">Progreso:</span>
           <div class="progress-bar-bg">
@@ -135,6 +139,15 @@
             <h3 style="color:white; font-size:0.95rem; margin-bottom:6px;">Ejercicios de SQL (DML)</h3>
             <p style="font-size:0.75rem; color:var(--text-secondary);">Selecciona una tarea para cargarla en el editor.</p>
           </div>
+          <div class="filter-box" style="padding: 10px 15px; border-bottom: 1px solid var(--border-color); display: flex; gap: 8px; background: rgba(0,0,0,0.1);">
+            <input type="text" id="sql-search" class="search-input" placeholder="Buscar ejercicio..." oninput="renderExercises()" style="flex: 1; padding: 6px 10px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 6px; color: white; font-size: 0.75rem; outline: none;">
+            <select id="sql-filter-diff" onchange="renderExercises()" style="padding: 6px 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-secondary); font-size: 0.75rem; outline: none; cursor: pointer;">
+              <option value="all">Todo</option>
+              <option value="easy">Fácil</option>
+              <option value="medium">Medio</option>
+              <option value="hard">Difícil</option>
+            </select>
+          </div>
           <div class="exercise-list" id="sql-exercise-list">
             <!-- Dynamic items loaded via JavaScript -->
           </div>
@@ -156,8 +169,16 @@
                     <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span>Instrucciones</span>
                   </button>
-                  <button class="btn btn-secondary" onclick="resetDbTables()">Reiniciar</button>
-                  <button class="btn btn-primary" onclick="executeSQLQuery()">Ejecutar</button>
+                  <button class="btn btn-secondary" onclick="restoreSqlExerciseInitialCode()" title="Restaurar código original de este ejercicio">Restaurar</button>
+                  <button class="btn btn-secondary" onclick="resetDbTables()" title="Reiniciar base de datos completa">Reiniciar BD</button>
+                  <select onchange="insertSQLTemplate(this.value); this.value='';" style="padding: 8px 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; outline: none; cursor: pointer; height: 32px; display: flex; align-items: center;">
+                    <option value="">Plantillas SQL</option>
+                    <option value="inner-join">INNER JOIN</option>
+                    <option value="left-join">LEFT JOIN</option>
+                    <option value="group-by">GROUP BY</option>
+                    <option value="subquery">Subconsulta IN</option>
+                  </select>
+                  <button class="btn btn-primary" onclick="executeSQLQuery()" title="Ejecutar consulta (Ctrl+Enter)">Ejecutar</button>
                 </div>
               </div>
               <div class="editor-body">
@@ -201,6 +222,15 @@
             <h3 style="color:white; font-size:0.95rem; margin-bottom:6px;">Ejercicios PL/SQL</h3>
             <p style="font-size:0.75rem; color:var(--text-secondary);">Selecciona un ejercicio de programación Oracle.</p>
           </div>
+          <div class="filter-box" style="padding: 10px 15px; border-bottom: 1px solid var(--border-color); display: flex; gap: 8px; background: rgba(0,0,0,0.1);">
+            <input type="text" id="plsql-search" class="search-input" placeholder="Buscar ejercicio..." oninput="renderExercises()" style="flex: 1; padding: 6px 10px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 6px; color: white; font-size: 0.75rem; outline: none;">
+            <select id="plsql-filter-diff" onchange="renderExercises()" style="padding: 6px 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-secondary); font-size: 0.75rem; outline: none; cursor: pointer;">
+              <option value="all">Todo</option>
+              <option value="easy">Fácil</option>
+              <option value="medium">Medio</option>
+              <option value="hard">Difícil</option>
+            </select>
+          </div>
           <div class="exercise-list" id="plsql-exercise-list">
             <!-- Dynamic items loaded via JavaScript -->
           </div>
@@ -218,7 +248,15 @@
               </div>
               <div class="editor-header" style="height: auto; padding: 6px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: flex-start;">
                 <div class="editor-actions" style="justify-content: flex-start; width: 100%;">
-                  <button class="btn btn-primary" onclick="compilePLSQL()">Compilar y Ejecutar</button>
+                  <button class="btn btn-secondary" onclick="restorePlsqlExerciseInitialCode()" title="Restaurar código original de este ejercicio">Restaurar</button>
+                  <select onchange="insertPLSQLTemplate(this.value); this.value='';" style="padding: 8px 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; outline: none; cursor: pointer; height: 32px; display: flex; align-items: center;">
+                    <option value="">Plantillas PL/SQL</option>
+                    <option value="block">Bloque DECLARE-BEGIN-END</option>
+                    <option value="cursor">Bucle CURSOR (OPEN-FETCH)</option>
+                    <option value="exception">Control EXCEPTION</option>
+                    <option value="function">Función Oracle</option>
+                  </select>
+                  <button class="btn btn-primary" onclick="compilePLSQL()" title="Compilar y Ejecutar (Ctrl+Enter)">Compilar y Ejecutar</button>
                 </div>
               </div>
               <div class="editor-body">
@@ -536,6 +574,139 @@ END;</textarea>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeCompareModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Esquema de Base de Datos Visual (Diagrama ER) -->
+  <div id="schema-modal" class="modal-overlay">
+    <div class="card modal-card" style="max-width: 950px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; padding: 24px;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; flex-shrink: 0;">
+        <h3 class="modal-title" style="display:flex; align-items:center; gap:8px;">
+          <svg style="width:20px;height:20px; color:var(--accent-purple);" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+          Modelo de Datos (Diagramas Relacionales)
+        </h3>
+        <button class="modal-close-btn" onclick="closeSchemaModal()">&times;</button>
+      </div>
+      
+      <!-- Sub-tabs in modal -->
+      <div class="table-tabs" style="border-bottom: 1px solid var(--border-color); flex-shrink: 0; background: rgba(0,0,0,0.15);">
+        <button class="table-tab-btn active" id="schema-tab-scott" onclick="switchSchemaTab('scott')">Esquema SCOTT (Empresa)</button>
+        <button class="table-tab-btn" id="schema-tab-nba" onclick="switchSchemaTab('nba')">Esquema NBA (Deportes)</button>
+      </div>
+      
+      <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px 0;">
+        <!-- SCOTT DIAGRAM -->
+        <div id="schema-content-scott" class="schema-diagram-panel" style="display: block;">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;">
+            El esquema **SCOTT** contiene las tablas para gestionar los departamentos de una empresa, sus empleados, salarios y comisiones. Las claves primarias están marcadas con 🔑 y las relaciones lógicas con 🔗.
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+            <!-- DEPT Card -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <div style="background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.1)); padding: 10px 14px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 0.85rem; color: white; letter-spacing: 0.5px;">DEPT</div>
+              <div style="padding: 12px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:#a7f3d0; font-weight:600;">🔑 deptno (INT)</span><span style="color:var(--text-muted);">PK</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>dname (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>loc (STRING)</span></div>
+              </div>
+            </div>
+            <!-- EMP Card -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <div style="background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.1)); padding: 10px 14px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 0.85rem; color: white; letter-spacing: 0.5px;">EMP</div>
+              <div style="padding: 12px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:#a7f3d0; font-weight:600;">🔑 empno (INT)</span><span style="color:var(--text-muted);">PK</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>ename (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>job (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:#a78bfa;"><span>🔗 mgr (INT)</span><span style="color:var(--text-muted);">FK ➔ EMP.empno</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>hiredate (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>sal (INT)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>comm (INT)</span></div>
+                <div style="display:flex; justify-content:space-between; color:#a78bfa;"><span>🔗 deptno (INT)</span><span style="color:var(--text-muted);">FK ➔ DEPT.deptno</span></div>
+              </div>
+            </div>
+            <!-- SALGRADE Card -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <div style="background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.1)); padding: 10px 14px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 0.85rem; color: white; letter-spacing: 0.5px;">SALGRADE</div>
+              <div style="padding: 12px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:#a7f3d0; font-weight:600;">🔑 grade (INT)</span><span style="color:var(--text-muted);">PK</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>losal (INT)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>hisal (INT)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- NBA DIAGRAM -->
+        <div id="schema-content-nba" class="schema-diagram-panel" style="display: none;">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;">
+            El esquema **NBA** contiene los datos de la liga americana de baloncesto, estructurada en equipos, jugadores, partidos disputados e historial estadístico acumulado de los jugadores por temporada.
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+            <!-- EQUIPOS -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <div style="background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(139,92,246,0.1)); padding: 10px 14px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 0.85rem; color: white; letter-spacing: 0.5px;">EQUIPOS</div>
+              <div style="padding: 12px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:#a7f3d0; font-weight:600;">🔑 nombre (STRING)</span><span style="color:var(--text-muted);">PK</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>ciudad (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>conferencia (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>division (STRING)</span></div>
+              </div>
+            </div>
+            <!-- JUGADORES -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <div style="background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(139,92,246,0.1)); padding: 10px 14px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 0.85rem; color: white; letter-spacing: 0.5px;">JUGADORES</div>
+              <div style="padding: 12px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:#a7f3d0; font-weight:600;">🔑 codigo (INT)</span><span style="color:var(--text-muted);">PK</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>nombre (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>procedencia (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>altura (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>peso (INT)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>posicion (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:#a78bfa;"><span>🔗 nombre_equipo</span><span style="color:var(--text-muted);">FK ➔ EQUIPOS.nombre</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>salario (INT)</span></div>
+              </div>
+            </div>
+            <!-- PARTIDOS -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <div style="background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(139,92,246,0.1)); padding: 10px 14px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 0.85rem; color: white; letter-spacing: 0.5px;">PARTIDOS</div>
+              <div style="padding: 12px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:#a7f3d0; font-weight:600;">🔑 codigo (INT)</span><span style="color:var(--text-muted);">PK</span></div>
+                <div style="display:flex; justify-content:space-between; color:#a78bfa;"><span>🔗 equipo_local</span><span style="color:var(--text-muted);">FK ➔ EQUIPOS.nombre</span></div>
+                <div style="display:flex; justify-content:space-between; color:#a78bfa;"><span>🔗 equipo_visitante</span><span style="color:var(--text-muted);">FK ➔ EQUIPOS.nombre</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>puntos_local (INT)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>puntos_visitante (INT)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>temporada (STRING)</span></div>
+              </div>
+            </div>
+            <!-- ESTADISTICAS -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <div style="background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(139,92,246,0.1)); padding: 10px 14px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 0.85rem; color: white; letter-spacing: 0.5px;">ESTADISTICAS</div>
+              <div style="padding: 12px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:#a7f3d0; font-weight:600;">🔑 temporada (STRING)</span><span style="color:var(--text-muted);">PK</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#a7f3d0; font-weight:600;">🔑🔗 jugador (INT)</span><span style="color:var(--text-muted);">PK, FK ➔ JUG.</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>puntos_por_partido</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>asistencias_por_partido</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>tapones_por_partido</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>rebotes_por_partido</span></div>
+              </div>
+            </div>
+            <!-- ENTRENADORES -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <div style="background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(139,92,246,0.1)); padding: 10px 14px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 0.85rem; color: white; letter-spacing: 0.5px;">ENTRENADORES</div>
+              <div style="padding: 12px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; line-height: 1.4;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:#a7f3d0; font-weight:600;">🔑 codigo (INT)</span><span style="color:var(--text-muted);">PK</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>nombre (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:var(--text-secondary);"><span>procedencia (STRING)</span></div>
+                <div style="display:flex; justify-content:space-between; color:#a78bfa;"><span>🔗 nombre_equipo</span><span style="color:var(--text-muted);">FK ➔ EQUIPOS.nombre</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 12px; flex-shrink: 0;">
+        <button class="btn btn-secondary" onclick="closeSchemaModal()">Cerrar</button>
       </div>
     </div>
   </div>
