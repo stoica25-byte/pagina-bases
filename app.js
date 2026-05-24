@@ -701,22 +701,26 @@ END;`,
     title: "3. Cadena al Revés",
     unit: "UD10: Procedimientos",
     difficulty: "easy",
-    instructions: "Diseña un bloque que simule revertir una cadena. Puedes declarar una variable con la palabra 'ORACLE' y utilizar lógica de asignación o impresión para mostrar la palabra al revés ('ELCARO').",
+    instructions: "Escribe un bloque PL/SQL que invierta una cadena de texto de forma dinámica utilizando un bucle `FOR` (en orden `REVERSE`) y la función `SUBSTR` para concatenar los caracteres uno a uno. Inicializa la palabra con 'ORACLE' y almacena el resultado en `v_reversa` antes de imprimirla con `DBMS_OUTPUT.PUT_LINE`.",
     startingCode: `DECLARE
   v_palabra VARCHAR2(20) := 'ORACLE';
-  v_reversa VARCHAR2(20);
+  v_reversa VARCHAR2(20) := '';
 BEGIN
-  -- Escribe tu código aquí para asignar la palabra al revés a v_reversa y mostrarla
+  -- Usa un bucle FOR en REVERSE para invertir v_palabra y guárdalo en v_reversa
   NULL;
 END;`,
     solution: `DECLARE
   v_palabra VARCHAR2(20) := 'ORACLE';
-  v_reversa VARCHAR2(20) := 'ELCARO';
+  v_reversa VARCHAR2(20) := '';
 BEGIN
+  FOR i IN REVERSE 1..LENGTH(v_palabra) LOOP
+    v_reversa := v_reversa || SUBSTR(v_palabra, i, 1);
+  END LOOP;
   DBMS_OUTPUT.PUT_LINE(v_reversa);
 END;`,
     tests: [
-      { name: "Declara la variable de texto", check: (code) => /VARCHAR2/i.test(code) },
+      { name: "Utiliza un bucle FOR en REVERSE", check: (code) => /FOR\s+\w+\s+IN\s+REVERSE\s+/i.test(code) && /LOOP/i.test(code) },
+      { name: "Usa la función SUBSTR", check: (code) => /SUBSTR/i.test(code) },
       { name: "Imprime la cadena invertida 'ELCARO'", check: (code, stdout) => stdout.trim() === "ELCARO" }
     ]
   },
@@ -870,16 +874,69 @@ END;`,
       { name: "Utiliza funciones TRUNC y MOD", check: (code) => /TRUNC/i.test(code) && /MOD/i.test(code) },
       { name: "Desglosa correctamente 88€", check: (code, stdout) => stdout.includes("Billetes 50: 1") && stdout.includes("Billetes 20: 1") && stdout.includes("Monedas 2: 1") }
     ]
+  },
+  {
+    title: "10. Cursor: Listado de Empleados",
+    unit: "UD10: Cursores",
+    difficulty: "medium",
+    instructions: "Escribe un bloque PL/SQL que declare un cursor explícito llamado `c_empleados` para seleccionar el nombre (`ename`) y salario (`sal`) de la tabla `emp`. Recorre el cursor con un bucle `FOR` para mostrar a cada empleado en la consola con el formato: '[ename] gana: [sal]'.",
+    startingCode: `DECLARE
+  -- Declara el cursor c_empleados y las variables necesarias si las requieres
+BEGIN
+  -- Recorre el cursor e imprime los datos
+  NULL;
+END;`,
+    solution: `DECLARE
+  CURSOR c_empleados IS SELECT ename, sal FROM emp;
+BEGIN
+  FOR r_emp IN c_empleados LOOP
+    DBMS_OUTPUT.PUT_LINE(r_emp.ename || ' gana: ' || r_emp.sal);
+  END LOOP;
+END;`,
+    tests: [
+      { name: "Declara un cursor explícito", check: (code) => /CURSOR\s+\w+\s+IS/i.test(code) },
+      { name: "Utiliza un bucle FOR para recorrer el cursor", check: (code) => /FOR\s+\w+\s+IN\s+\w+\s+LOOP/i.test(code) },
+      { name: "Muestra listado de salarios correcto", check: (code, stdout) => stdout.includes("KING gana: 5000") && stdout.includes("SMITH gana: 800") }
+    ]
+  },
+  {
+    title: "11. Bucle Cursor: Ajuste de Salarios",
+    unit: "UD10: Cursores",
+    difficulty: "hard",
+    instructions: "Escribe un bloque PL/SQL que declare un cursor explícito llamado `c_empleados` para seleccionar el `empno` y salario (`sal`) de los empleados del departamento 20. Utiliza un bucle `FOR` para recorrer el cursor y realiza un `UPDATE` incrementando un 10% el salario de los empleados que ganen menos de 2000. Además, incluye una sección `EXCEPTION` para capturar cualquier excepción genérica (`OTHERS`) e imprime 'Error inesperado'.",
+    startingCode: `DECLARE
+  -- Declara el cursor c_empleados para el departamento 20
+BEGIN
+  -- Recorre el cursor, actualiza los salarios < 2000 y maneja excepciones
+  NULL;
+END;`,
+    solution: `DECLARE
+  CURSOR c_empleados IS SELECT empno, sal FROM emp WHERE deptno = 20;
+BEGIN
+  FOR r_emp IN c_empleados LOOP
+    IF r_emp.sal < 2000 THEN
+      UPDATE emp SET sal = sal * 1.10 WHERE empno = r_emp.empno;
+    END IF;
+  END LOOP;
+EXCEPTION
+  WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('Error inesperado');
+END;`,
+    tests: [
+      { name: "Declara el cursor con filtro deptno = 20", check: (code) => /CURSOR\s+\w+\s+IS\s+SELECT[\s\S]+?FROM\s+emp\s+WHERE\s+deptno\s*=\s*20/i.test(code) },
+      { name: "Realiza el UPDATE sobre la tabla emp", check: (code) => /UPDATE\s+emp\s+SET\s+sal/i.test(code) },
+      { name: "Incluye sección EXCEPTION con WHEN OTHERS", check: (code) => /EXCEPTION[\s\S]+?WHEN\s+OTHERS/i.test(code) }
+    ]
   }
 ];
 
 let activeSqlExerciseIndex = 0;
 let activePlsqlExerciseIndex = 0;
 
-// Track completion states of all exercises (20 total: 7 SQL + 9 PLSQL + 3 DCL + 1 Normalization)
+// Track completion states of all exercises (22 total: 7 SQL + 11 PLSQL + 3 DCL + 1 Normalization)
 const exerciseCompletion = {
   sql: [false, false, false, false, false, false, false],
-  plsql: [false, false, false, false, false, false, false, false, false],
+  plsql: [false, false, false, false, false, false, false, false, false, false, false],
   dcl1: false,
   dcl2: false,
   dcl3: false,
@@ -1020,7 +1077,7 @@ function selectPlsqlExercise(index) {
   // Reset database state dynamically on exercise select to prevent cross-contamination
   initDatabase();
   
-  const plsqlTableMap = ['emp', 'emp', 'emp', 'emp', 'equipos', 'entrenadores', 'emp', 'emp', 'emp'];
+  const plsqlTableMap = ['emp', 'emp', 'emp', 'emp', 'equipos', 'entrenadores', 'emp', 'emp', 'emp', 'emp', 'emp'];
   if (plsqlTableMap[index]) {
     activeTableTab = plsqlTableMap[index];
   }
@@ -1245,8 +1302,261 @@ function preprocessSQL(query) {
 }
 
 // ==========================================
-// PL/SQL Simulation Compiler
+// PL/SQL Simulation Compiler & Transpiler
 // ==========================================
+
+function translateExpression(expr, env) {
+  if (!expr) return "null";
+  expr = expr.trim();
+  
+  let result = "";
+  let inString = false;
+  let currentString = "";
+  let nonStringPart = "";
+  
+  for (let i = 0; i < expr.length; i++) {
+    const char = expr[i];
+    if (char === "'") {
+      if (inString) {
+        result += `"${currentString.replace(/"/g, '\\"')}"`;
+        inString = false;
+        currentString = "";
+      } else {
+        result += translateNonStringExpr(nonStringPart);
+        nonStringPart = "";
+        inString = true;
+      }
+    } else {
+      if (inString) {
+        currentString += char;
+      } else {
+        nonStringPart += char;
+      }
+    }
+  }
+  if (nonStringPart) {
+    result += translateNonStringExpr(nonStringPart);
+  }
+  
+  return result;
+}
+
+function translateNonStringExpr(txt) {
+  let t = txt.replace(/\|\|/g, " + ");
+  t = t.replace(/\bOR\b/gi, " || ");
+  t = t.replace(/\bAND\b/gi, " && ");
+  t = t.replace(/(?<![><!:])=/g, " == ");
+  t = t.replace(/<>/g, " != ");
+  return t;
+}
+
+function translateControlLine(line) {
+  line = line.trim();
+  
+  let rangeLoopMatch = line.match(/FOR\s+(\w+)\s+IN\s+(REVERSE\s+)?([\s\S]+?)\.\.([\s\S]+?)\s+LOOP/i);
+  if (rangeLoopMatch) {
+    const varName = rangeLoopMatch[1];
+    const isReverse = !!rangeLoopMatch[2];
+    const startVal = translateExpression(rangeLoopMatch[3]);
+    const endVal = translateExpression(rangeLoopMatch[4]);
+    
+    if (isReverse) {
+      return `for (let ${varName} = ${endVal}; ${varName} >= ${startVal}; ${varName}--) {`;
+    } else {
+      return `for (let ${varName} = ${startVal}; ${varName} <= ${endVal}; ${varName}++) {`;
+    }
+  }
+  
+  let inlineQueryLoopMatch = line.match(/FOR\s+(\w+)\s+IN\s*\(\s*([\s\S]+?)\s*\)\s+LOOP/i);
+  if (inlineQueryLoopMatch) {
+    const varName = inlineQueryLoopMatch[1];
+    const query = inlineQueryLoopMatch[2].trim();
+    return `for (env.${varName} of executeQuery(\`${query}\`, env)) {`;
+  }
+  
+  let cursorLoopMatch = line.match(/FOR\s+(\w+)\s+IN\s+(\w+)\s+LOOP/i);
+  if (cursorLoopMatch) {
+    const varName = cursorLoopMatch[1];
+    const cursorName = cursorLoopMatch[2];
+    return `for (env.${varName} of openCursor('${cursorName}', env)) {`;
+  }
+  
+  let whileLoopMatch = line.match(/WHILE\s+([\s\S]+?)\s+LOOP/i);
+  if (whileLoopMatch) {
+    const cond = translateExpression(whileLoopMatch[1]);
+    return `while (${cond}) {`;
+  }
+  
+  let ifMatch = line.match(/IF\s+([\s\S]+?)\s+THEN/i);
+  if (ifMatch) {
+    const cond = translateExpression(ifMatch[1]);
+    return `if (${cond}) {`;
+  }
+  
+  let elsifMatch = line.match(/ELSIF\s+([\s\S]+?)\s+THEN/i);
+  if (elsifMatch) {
+    const cond = translateExpression(elsifMatch[1]);
+    return `} else if (${cond}) {`;
+  }
+  
+  if (/^ELSE$/i.test(line)) {
+    return `} else {`;
+  }
+  
+  if (/^END\s+IF\s*;?$/i.test(line)) {
+    return `}`;
+  }
+  
+  if (/^END\s+LOOP\s*;?$/i.test(line)) {
+    return `}`;
+  }
+  
+  return "";
+}
+
+function translateSingleStatement(statement) {
+  statement = statement.trim();
+  if (statement.endsWith(';')) statement = statement.slice(0, -1).trim();
+  if (!statement) return "";
+  
+  let putLineMatch = statement.match(/DBMS_OUTPUT\.PUT_LINE\(([\s\S]*?)\)/i);
+  if (putLineMatch) {
+    const expr = translateExpression(putLineMatch[1]);
+    return `dbms_output_put_line(${expr});`;
+  }
+  
+  let selectIntoMatch = statement.match(/SELECT\s+([\s\S]+?)\s+INTO\s+([\s\S]+?)\s+FROM\s+([\s\S]+)/i);
+  if (selectIntoMatch) {
+    const fields = selectIntoMatch[1].trim();
+    const vars = selectIntoMatch[2].trim().split(',').map(v => v.trim().toLowerCase());
+    const fromAndWhere = selectIntoMatch[3].trim();
+    
+    let js = `{\n  const _res = selectInto(\`${fields}\`, \`${fromAndWhere}\`, env);\n`;
+    vars.forEach((v, idx) => {
+      js += `  ${v} = _res[${idx}];\n`;
+    });
+    js += `}`;
+    return js;
+  }
+  
+  if (/^\s*(INSERT\s+INTO|UPDATE|DELETE\s+FROM)/i.test(statement)) {
+    return `executeDML(\`${statement}\`, env);`;
+  }
+  
+  let assignMatch = statement.match(/(\w+)\s*:=\s*([\s\S]+)/i);
+  if (assignMatch) {
+    const varName = assignMatch[1].trim().toLowerCase();
+    const expr = translateExpression(assignMatch[2]);
+    return `${varName} = ${expr};`;
+  }
+  
+  if (/^NULL$/i.test(statement)) {
+    return `// null;`;
+  }
+  
+  return statement + ";";
+}
+
+function translateBlock(blockText) {
+  const rawLines = blockText.split('\n');
+  let jsBlock = "";
+  let accumulatedStatement = "";
+  
+  for (let i = 0; i < rawLines.length; i++) {
+    const rawLine = rawLines[i].trim();
+    if (!rawLine) continue;
+    
+    if (
+      /^\s*FOR\s+\w+\s+IN\s+/i.test(rawLine) ||
+      /^\s*WHILE\s+/i.test(rawLine) ||
+      /^\s*IF\s+/i.test(rawLine) ||
+      /^\s*ELSIF\s+/i.test(rawLine) ||
+      /^\s*ELSE\s*$/i.test(rawLine) ||
+      /^\s*END\s+IF\s*;?\s*$/i.test(rawLine) ||
+      /^\s*END\s+LOOP\s*;?\s*$/i.test(rawLine)
+    ) {
+      if (accumulatedStatement.trim()) {
+        jsBlock += translateSingleStatement(accumulatedStatement.trim()) + "\n";
+        accumulatedStatement = "";
+      }
+      jsBlock += translateControlLine(rawLine) + "\n";
+    } else {
+      accumulatedStatement += " " + rawLine;
+      if (rawLine.endsWith(';')) {
+        jsBlock += translateSingleStatement(accumulatedStatement.trim()) + "\n";
+        accumulatedStatement = "";
+      }
+    }
+  }
+  
+  if (accumulatedStatement.trim()) {
+    jsBlock += translateSingleStatement(accumulatedStatement.trim()) + "\n";
+  }
+  
+  return jsBlock;
+}
+
+function resolveQueryVars(query, env) {
+  if (!env) return query;
+  
+  let resolved = query;
+  
+  // 1. Resolve record fields like r_emp.empno
+  const fieldMatches = resolved.match(/\b([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)\b/g);
+  if (fieldMatches) {
+    fieldMatches.forEach(match => {
+      const parts = match.split('.');
+      const recName = parts[0].toLowerCase();
+      const fieldName = parts[1].toLowerCase();
+      
+      if (recName in env && env[recName] && typeof env[recName] === 'object') {
+        const row = env[recName];
+        const keys = Object.keys(row);
+        const matchKey = keys.find(k => k.toLowerCase() === fieldName);
+        if (matchKey !== undefined) {
+          const val = row[matchKey];
+          let sqlVal = "NULL";
+          if (val !== null && val !== undefined) {
+            if (typeof val === 'string') {
+              sqlVal = `'${val.replace(/'/g, "''")}'`;
+            } else {
+              sqlVal = val;
+            }
+          }
+          const regex = new RegExp('\\b' + recName + '\\.' + fieldName + '\\b', 'gi');
+          resolved = resolved.replace(regex, sqlVal);
+        }
+      }
+    });
+  }
+  
+  // 2. Resolve normal variables
+  const varNames = Object.keys(env).sort((a, b) => b.length - a.length);
+  varNames.forEach(vName => {
+    if (env[vName] && typeof env[vName] === 'object' && !(env[vName] instanceof Date)) {
+      return;
+    }
+    
+    const val = env[vName];
+    let sqlVal = "NULL";
+    if (val !== null && val !== undefined) {
+      if (val instanceof Date) {
+        const yyyy = val.getFullYear();
+        const mm = String(val.getMonth() + 1).padStart(2, '0');
+        const dd = String(val.getDate()).padStart(2, '0');
+        sqlVal = `'${yyyy}-${mm}-${dd}'`;
+      } else if (typeof val === 'string') {
+        sqlVal = `'${val.replace(/'/g, "''")}'`;
+      } else {
+        sqlVal = val;
+      }
+    }
+    const regex = new RegExp('\\b' + vName + '\\b', 'gi');
+    resolved = resolved.replace(regex, sqlVal);
+  });
+  
+  return resolved;
+}
 
 function compilePLSQL() {
   const code = plsqlEditor.getValue().trim();
@@ -1255,12 +1565,10 @@ function compilePLSQL() {
   let stdout = "";
   let errorMsg = null;
   
-  // Clean comments to prevent syntax parsing issues
   let cleanCode = code
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/--.*$/gm, "");
 
-  // Detect DML operations inside PL/SQL to enable diff visualization
   const dmlMatch = cleanCode.match(/(INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(\w+)/i);
   const dmlTable = dmlMatch ? dmlMatch[2].toLowerCase() : null;
   let beforeData = null;
@@ -1272,246 +1580,284 @@ function compilePLSQL() {
     }
   }
 
-  // Custom mock execution engine for PL/SQL syntax
   try {
-    // 1. Basic lexical check: DECLARE, BEGIN, END;
-    if (!/BEGIN/i.test(cleanCode) && !/END\s*;/i.test(cleanCode)) {
+    if (!/BEGIN/i.test(cleanCode) || !/END\s*;/i.test(cleanCode)) {
       throw new Error("PLS-00103: Se encontró fin de archivo inesperado. Falta BEGIN o END;");
     }
 
-    // 2. Parse DBMS_OUTPUT.PUT_LINE calls
-    // Let's extract variables to evaluate expressions
-    const variables = {};
-
-    // Check DECLARE section variables
     const declareMatch = cleanCode.match(/DECLARE([\s\S]*?)BEGIN/i);
-    if (declareMatch) {
-      const declareBlock = declareMatch[1];
-      const lines = declareBlock.split(';');
+    let declareBlock = declareMatch ? declareMatch[1] : "";
+    
+    let beginBody = "";
+    const beginMatch = cleanCode.match(/BEGIN([\s\S]*?)$/i);
+    if (!beginMatch) {
+      throw new Error("PLS-00103: Falta el bloque BEGIN");
+    }
+    beginBody = beginMatch[1];
+    
+    const lastEndMatch = beginBody.match(/([\s\S]*?)END\s*;\s*$/i) || beginBody.match(/([\s\S]*?)END\s*;/i);
+    if (lastEndMatch) {
+      beginBody = lastEndMatch[1];
+    }
+    
+    const excSplit = beginBody.split(/EXCEPTION/i);
+    const beginSection = excSplit[0];
+    const exceptionSection = excSplit[1] || "";
+
+    const env = {};
+    const cursors = {};
+
+    if (declareBlock) {
+      const lines = [];
+      let currentLine = "";
+      let parenCount = 0;
+      for (let i = 0; i < declareBlock.length; i++) {
+        const c = declareBlock[i];
+        if (c === '(') parenCount++;
+        if (c === ')') parenCount--;
+        if (c === ';' && parenCount === 0) {
+          lines.push(currentLine);
+          currentLine = "";
+        } else {
+          currentLine += c;
+        }
+      }
+      if (currentLine.trim()) lines.push(currentLine);
+
       lines.forEach(line => {
         line = line.trim();
         if (!line) return;
-        
-        const varMatch = line.match(/(\w+)\s+(\w+(?:\(\d+\))?|[\w\.]+%TYPE)\s*(?::=\s*(.*))?/i);
+
+        const cursorMatch = line.match(/CURSOR\s+(\w+)\s+IS\s+([\s\S]+)/i);
+        if (cursorMatch) {
+          cursors[cursorMatch[1].toLowerCase()] = cursorMatch[2].trim();
+          return;
+        }
+
+        const varMatch = line.match(/(\w+)\s+([^:=]+)(?::=\s*([\s\S]+))?/i);
         if (varMatch) {
-          const name = varMatch[1].toLowerCase();
-          let rawVal = varMatch[3] ? varMatch[3].trim() : "NULL";
+          const name = varMatch[1].trim().toLowerCase();
+          const rawVal = varMatch[3] ? varMatch[3].trim() : "null";
           
-          let evaluatedVal = null;
-          if (rawVal === "NULL" || rawVal === "") {
-            evaluatedVal = null;
-          } else {
-            try {
-              let jsExpr = rawVal;
-              jsExpr = jsExpr.replace(/TO_DATE\('([^']+)',\s*'[^']+'\)/gi, 'new Date("$1")');
-              
-              // Evaluate with other variables already declared
-              const sortedVarNames = Object.keys(variables).sort((a, b) => b.length - a.length);
-              sortedVarNames.forEach(vName => {
-                const val = variables[vName];
-                let replacement = val;
-                if (val instanceof Date) {
-                  replacement = `new Date(${val.getTime()})`;
-                } else if (typeof val === 'string') {
-                  replacement = `"${val}"`;
-                }
-                const regex = new RegExp('\\b' + vName + '\\b', 'gi');
-                jsExpr = jsExpr.replace(regex, replacement);
-              });
-              
-              evaluatedVal = new Function("return " + jsExpr)();
-            } catch (e) {
-              if (rawVal.startsWith("'") && rawVal.endsWith("'")) {
-                evaluatedVal = rawVal.slice(1, -1);
-              } else if (!isNaN(rawVal)) {
-                evaluatedVal = Number(rawVal);
-              } else {
-                evaluatedVal = rawVal;
-              }
+          let jsVal = translateExpression(rawVal, {});
+          let evaluated = null;
+          try {
+            evaluated = new Function(`
+              const TO_DATE = (d, f) => new Date(d);
+              const TRUNC = (n) => Math.trunc(n);
+              const MOD = (n, m) => n % m;
+              return ${jsVal};
+            `)();
+          } catch (e) {
+            if (rawVal.startsWith("'") && rawVal.endsWith("'")) {
+              evaluated = rawVal.slice(1, -1);
+            } else if (!isNaN(rawVal)) {
+              evaluated = Number(rawVal);
+            } else {
+              evaluated = null;
             }
           }
-          variables[name] = evaluatedVal;
+          env[name] = evaluated;
         }
       });
     }
 
-    // 3. Mock SQL execution in PL/SQL block
-    const selectIntoMatch = cleanCode.match(/SELECT\s+(.+?)\s+INTO\s+(.+?)\s+FROM\s+(.+?)\s+WHERE\s+(.+?)(?:;|$)/i);
-    if (selectIntoMatch) {
-      const selectFields = selectIntoMatch[1].trim();
-      const intoVars = selectIntoMatch[2].trim().toLowerCase();
-      const fromTable = selectIntoMatch[3].trim();
-      const whereClause = selectIntoMatch[4].trim();
-
-      let alasqlQuery = `SELECT ${selectFields} FROM ${fromTable} WHERE ${whereClause}`;
+    let jsCode = "";
+    
+    jsCode += `try {\n`;
+    jsCode += translateBlock(beginSection);
+    jsCode += `} catch (e) {\n`;
+    
+    if (exceptionSection.trim()) {
+      jsCode += `  const SQLERRM = e.message;\n`;
+      jsCode += `  const is_ndf = e.message === "NO_DATA_FOUND";\n`;
+      jsCode += `  const is_tmr = e.message === "TOO_MANY_ROWS";\n`;
+      jsCode += `  const is_dup = e.message.includes("unique") || e.message.includes("DUP_VAL_ON_INDEX") || e.message.includes("violada");\n`;
       
+      const whenClauses = exceptionSection.split(/WHEN\s+/i);
+      let first = true;
+      whenClauses.forEach(clause => {
+        clause = clause.trim();
+        if (!clause) return;
+        
+        const parts = clause.match(/(\w+)\s+THEN([\s\S]+)/i);
+        if (parts) {
+          const excName = parts[1].toUpperCase();
+          const excBody = translateBlock(parts[2]);
+          
+          let condition = "false";
+          if (excName === "NO_DATA_FOUND") condition = "is_ndf";
+          else if (excName === "TOO_MANY_ROWS") condition = "is_tmr";
+          else if (excName === "DUP_VAL_ON_INDEX") condition = "is_dup";
+          else if (excName === "OTHERS") condition = "true";
+          
+          if (first) {
+            jsCode += `  if (${condition}) {\n`;
+            first = false;
+          } else {
+            jsCode += `  } else if (${condition}) {\n`;
+          }
+          jsCode += excBody;
+        }
+      });
+      if (!first) {
+        jsCode += `  } else {\n    throw e;\n  }\n`;
+      } else {
+        jsCode += `  throw e;\n`;
+      }
+    } else {
+      jsCode += `  throw e;\n`;
+    }
+    jsCode += `}\n`;
+
+    const dbms_output_put_line = (val) => {
+      stdout += (val === null || val === undefined ? "" : val) + "\n";
+    };
+
+    const executeQuery = (query, currentEnv) => {
+      const resolved = resolveQueryVars(query, currentEnv);
+      try {
+        return alasql(resolved);
+      } catch (err) {
+        throw new Error(`ORA-00904: identificador no válido en SQL: ${err.message}`);
+      }
+    };
+
+    const openCursor = (cname, currentEnv) => {
+      const q = cursors[cname.toLowerCase()];
+      if (!q) throw new Error("Cursor " + cname + " no definido.");
+      return executeQuery(q, currentEnv);
+    };
+
+    const selectInto = (fieldsStr, fromAndWhereStr, currentEnv) => {
+      const fullQuery = `SELECT ${fieldsStr} FROM ${fromAndWhereStr}`;
+      const resolved = resolveQueryVars(fullQuery, currentEnv);
       let rows;
       try {
-        rows = alasql(alasqlQuery);
-      } catch (sqlErr) {
-        throw new Error(`ORA-00904: identificador no válido en SQL interno: ${sqlErr.message}`);
+        rows = alasql(resolved);
+      } catch (err) {
+        throw new Error(`ORA-00904: identificador no válido en SQL interno: ${err.message}`);
       }
-
-      if (!rows || rows.length === 0) {
-        if (/WHEN\s+NO_DATA_FOUND/i.test(cleanCode)) {
-          const excBlock = cleanCode.match(/EXCEPTION[\s\S]*?WHEN\s+NO_DATA_FOUND\s+THEN([\s\S]*?)(?:WHEN|END)/i);
-          if (excBlock) {
-            const excStatements = excBlock[1];
-            const putLineMatch = excStatements.match(/DBMS_OUTPUT\.PUT_LINE\((.*?)\)/i);
-            if (putLineMatch) {
-              stdout = evalPLSQLExpression(putLineMatch[1], variables);
-            }
-          }
-        } else {
-          throw new Error("ORA-01403: No se encontraron datos (NO_DATA_FOUND)");
-        }
-      } else if (rows.length > 1) {
-        if (/WHEN\s+TOO_MANY_ROWS/i.test(cleanCode)) {
-          const excBlock = cleanCode.match(/EXCEPTION[\s\S]*?WHEN\s+TOO_MANY_ROWS\s+THEN([\s\S]*?)(?:WHEN|END)/i);
-          if (excBlock) {
-            const putLineMatch = excBlock[1].match(/DBMS_OUTPUT\.PUT_LINE\((.*?)\)/i);
-            if (putLineMatch) stdout = evalPLSQLExpression(putLineMatch[1], variables);
-          }
-        } else {
-          throw new Error("ORA-01422: La recuperación exacta devuelve más del número solicitado de filas");
-        }
-      } else {
-        // Success case: split and assign variables
-        const fields = selectFields.split(',').map(f => f.trim());
-        const vars = intoVars.split(',').map(v => v.trim().toLowerCase());
-        fields.forEach((f, idx) => {
-          if (vars[idx]) {
-            variables[vars[idx]] = rows[0][f];
-          }
-        });
-      }
-    }
-
-    // Handle INSERT/UPDATE statements in PL/SQL block
-    const insertMatch = cleanCode.match(/INSERT\s+INTO\s+(\w+)\s*(?:\([^)]+\))?\s*VALUES\s*\(([\s\S]*?)\)(?:;|$)/i);
-    if (insertMatch && !selectIntoMatch) {
-      const table = insertMatch[1].toLowerCase();
-      const vals = insertMatch[2].split(',');
       
-      if (table === 'entrenadores') {
-        const pkVal = parseInt(vals[0].trim());
-        const existing = alasql(`SELECT COUNT(*) as cnt FROM entrenadores WHERE codigo = ${pkVal}`)[0].cnt;
-        if (existing > 0) {
-          if (/WHEN\s+DUP_VAL_ON_INDEX/i.test(cleanCode)) {
-            const excBlock = cleanCode.match(/EXCEPTION[\s\S]*?WHEN\s+DUP_VAL_ON_INDEX\s+THEN([\s\S]*?)(?:WHEN|END)/i);
-            if (excBlock) {
-              const putLineMatch = excBlock[1].match(/DBMS_OUTPUT\.PUT_LINE\((.*?)\)/i);
-              if (putLineMatch) stdout = evalPLSQLExpression(putLineMatch[1], variables);
-            }
-          } else {
-            throw new Error("ORA-00001: Restricción única violada (DUP_VAL_ON_INDEX)");
-          }
-        } else {
-          alasql(insertMatch[0]);
-          stdout = "Fila insertada con éxito en entrenadores.";
-        }
+      if (!rows || rows.length === 0) {
+        throw new Error("NO_DATA_FOUND");
       }
-    }
-
-    // Parse and execute assignments in the BEGIN block
-    const beginBlockMatch = cleanCode.match(/BEGIN([\s\S]*?)(?:EXCEPTION|END)/i);
-    if (beginBlockMatch) {
-      const beginBlock = beginBlockMatch[1];
-      const statements = beginBlock.split(';');
-      statements.forEach(statement => {
-        statement = statement.trim();
-        if (!statement) return;
-        
-        // Match assignment: var := expr
-        const assignMatch = statement.match(/(\w+)\s*:=\s*([\s\S]+)/i);
-        if (assignMatch) {
-          const varName = assignMatch[1].trim().toLowerCase();
-          let expr = assignMatch[2].trim();
-          
-          try {
-            expr = expr.replace(/TRUNC\(/gi, 'Math.trunc(');
-            expr = expr.replace(/MOD\(([^,]+),([^)]+)\)/gi, '($1 % $2)');
-            expr = expr.replace(/TO_DATE\('([^']+)',\s*'[^']+'\)/gi, 'new Date("$1")');
-            expr = expr.replace(/(v_fecha_actual\s*-\s*v_fecha_alta)/gi, '((v_fecha_actual - v_fecha_alta) / 86400000)');
-            
-            const sortedVarNames = Object.keys(variables).sort((a, b) => b.length - a.length);
-            sortedVarNames.forEach(vName => {
-              const val = variables[vName];
-              let replacement = val;
-              if (val instanceof Date) {
-                replacement = `new Date(${val.getTime()})`;
-              } else if (typeof val === 'string') {
-                replacement = `"${val}"`;
-              }
-              const regex = new RegExp('\\b' + vName + '\\b', 'gi');
-              expr = expr.replace(regex, replacement);
-            });
-            
-            let result = new Function("return " + expr)();
-            variables[varName] = result;
-          } catch (e) {
-            console.warn("Assignment evaluation error:", e);
-          }
-        } else if (/^\s*(INSERT\s+INTO|UPDATE|DELETE\s+FROM)/i.test(statement)) {
-          try {
-            if (/INSERT\s+INTO\s+entrenadores/i.test(statement)) {
-              // Already handled in the insertMatch check
-            } else {
-              alasql(statement);
-            }
-          } catch (dmlErr) {
-            console.warn("Direct DML execution in PL/SQL block failed:", dmlErr);
-          }
-        }
+      if (rows.length > 1) {
+        throw new Error("TOO_MANY_ROWS");
+      }
+      
+      const row = rows[0];
+      const fields = fieldsStr.split(',').map(f => {
+        f = f.trim();
+        const parts = f.split('.');
+        let cleanF = parts[parts.length - 1];
+        const aliasParts = cleanF.split(/\s+AS\s+/i);
+        if (aliasParts.length > 1) return aliasParts[1].trim();
+        const spaceParts = cleanF.split(/\s+/);
+        if (spaceParts.length > 1) return spaceParts[spaceParts.length - 1].trim();
+        return cleanF;
       });
-    }
+      
+      const keys = Object.keys(row);
+      return fields.map((f, idx) => {
+        const matchKey = keys.find(k => k.toLowerCase() === f.toLowerCase()) || keys[idx];
+        return row[matchKey];
+      });
+    };
 
-    // 4. Fallback execution of PUT_LINE in BEGIN body
-    if (!stdout) {
-      // Find DBMS_OUTPUT.PUT_LINE calls inside the main BEGIN block (excluding EXCEPTION)
-      const beginBlock = cleanCode.match(/BEGIN([\s\S]*?)(?:EXCEPTION|END)/i)[1];
-      const putLineMatches = beginBlock.matchAll(/DBMS_OUTPUT\.PUT_LINE\((.*?)\)/gi);
-      let outputs = [];
-      for (const m of putLineMatches) {
-        outputs.push(evalPLSQLExpression(m[1], variables));
-      }
-      stdout = outputs.join('\n');
-    }
-
-    // Refresh tables view with diff if it was PL/SQL DML
-    if (dmlTable && beforeData !== null) {
-      let afterData = null;
+    const executeDML = (dmlStr, currentEnv) => {
+      const resolved = resolveQueryVars(dmlStr, currentEnv);
       try {
-        afterData = JSON.parse(JSON.stringify(alasql('SELECT * FROM ' + dmlTable)));
-      } catch (e) {
-        console.warn("Failed to take PL/SQL DML snapshot after execution:", e);
+        if (/INSERT\s+INTO\s+entrenadores/i.test(resolved)) {
+          const insertMatch = resolved.match(/INSERT\s+INTO\s+entrenadores\s*(?:\([^)]+\))?\s*VALUES\s*\(([\s\S]*?)\)/i);
+          if (insertMatch) {
+            const vals = insertMatch[1].split(',');
+            const pkVal = parseInt(vals[0].trim());
+            const existing = alasql(`SELECT COUNT(*) as cnt FROM entrenadores WHERE codigo = ${pkVal}`)[0].cnt;
+            if (existing > 0) {
+              throw new Error("DUP_VAL_ON_INDEX");
+            }
+          }
+        }
+        alasql(resolved);
+      } catch (err) {
+        if (err.message === "DUP_VAL_ON_INDEX") {
+          throw err;
+        }
+        throw new Error(`ORA-00001: Restricción única violada: ${err.message}`);
       }
-      if (afterData !== null) {
-        showDbTableDiff(dmlTable, beforeData, afterData);
-      }
-    }
+    };
+
+    const SUBSTR = (str, start, len) => {
+      if (str === null || str === undefined) return null;
+      str = String(str);
+      let startIdx = start > 0 ? start - 1 : (start < 0 ? str.length + start : 0);
+      if (len === undefined) return str.substring(startIdx);
+      return str.substring(startIdx, startIdx + len);
+    };
+
+    const LENGTH = (str) => {
+      if (str === null || str === undefined) return 0;
+      return String(str).length;
+    };
+
+    const TRUNC = (num, dec) => {
+      if (num === null || num === undefined) return null;
+      const factor = Math.pow(10, dec || 0);
+      return Math.trunc(num * factor) / factor;
+    };
+
+    const MOD = (num, div) => {
+      if (num === null || num === undefined) return null;
+      return num % div;
+    };
+
+    const TO_DATE = (str, fmt) => {
+      if (!str) return null;
+      return new Date(str);
+    };
+
+    const executorFn = new Function(
+      "env", "executeQuery", "openCursor", "selectInto", "executeDML",
+      "dbms_output_put_line", "SUBSTR", "LENGTH", "TRUNC", "MOD", "TO_DATE",
+      `with (env) {\n${jsCode}\n}`
+    );
+
+    executorFn(
+      env, executeQuery, openCursor, selectInto, executeDML,
+      dbms_output_put_line, SUBSTR, LENGTH, TRUNC, MOD, TO_DATE
+    );
+    
+    if (stdout.endsWith("\n")) stdout = stdout.slice(0, -1);
 
   } catch (err) {
     errorMsg = err.message;
   }
 
-  // Render compilation console
+  if (dmlTable && beforeData !== null) {
+    let afterData = null;
+    try {
+      afterData = JSON.parse(JSON.stringify(alasql('SELECT * FROM ' + dmlTable)));
+    } catch (e) {
+      console.warn("Failed to take PL/SQL DML snapshot after execution:", e);
+    }
+    if (afterData !== null) {
+      showDbTableDiff(dmlTable, beforeData, afterData);
+    }
+  }
+
   if (errorMsg) {
     consoleEl.innerText = `PL/SQL Compilation Error:\n${errorMsg}`;
     consoleEl.className = "console-output error";
-    
-    // Show tests as failed
     renderPlsqlTests([false, false]);
   } else {
     consoleEl.innerText = `Procedimiento ejecutado con éxito.\n--------------------------------\n${stdout}`;
     consoleEl.className = "console-output success";
     
-    // Evaluate tests
     const ex = plsqlExercises[activePlsqlExerciseIndex];
     const testResults = ex.tests.map(test => test.check(code, stdout));
     renderPlsqlTests(testResults);
     
-    // If all tests passed, mark exercise as completed
     const allPassed = testResults.every(r => r === true);
     if (allPassed) {
       exerciseCompletion.plsql[activePlsqlExerciseIndex] = true;
@@ -1520,29 +1866,6 @@ function compilePLSQL() {
       updateProgressBar();
     }
   }
-}
-
-// Evaluate PL/SQL expressions like: 'Resultado: ' || v_suma
-function evalPLSQLExpression(expr, variables) {
-  expr = expr.trim();
-  
-  // Splitting by concatenation operator '||'
-  const parts = expr.split('||');
-  const resolvedParts = parts.map(part => {
-    part = part.trim();
-    // Literal string
-    if (part.startsWith("'") && part.endsWith("'")) {
-      return part.slice(1, -1);
-    }
-    // Variable lookup
-    const varName = part.toLowerCase();
-    if (varName in variables) {
-      return variables[varName];
-    }
-    return part;
-  });
-  
-  return resolvedParts.join('');
 }
 
 // ==========================================
@@ -1636,7 +1959,7 @@ function updateProgressBar() {
   // Normalization
   if (exerciseCompletion.norm) solved++;
   
-  const total = 20; // 7 SQL + 9 PLSQL + 3 DCL + 1 Normalization
+  const total = 22; // 7 SQL + 11 PLSQL + 3 DCL + 1 Normalization
   const pct = Math.round((solved / total) * 100);
   
   // Update UI Elements
@@ -1875,4 +2198,70 @@ function switchSchemaTab(schemaType) {
     if (scottContent) scottContent.style.display = "none";
     if (nbaContent) nbaContent.style.display = "block";
   }
+}
+
+// Toggle Sidebar (Collapse/Expand) for SQL and PL/SQL interactive panels
+function toggleLabSidebar(type) {
+  const container = document.getElementById(type === 'sql' ? 'sql-lab-container' : 'plsql-lab-container');
+  const btn = document.getElementById(type === 'sql' ? 'btn-toggle-sql-sidebar' : 'btn-toggle-plsql-sidebar');
+  if (!container || !btn) return;
+  
+  const isCollapsed = container.classList.toggle('sidebar-collapsed');
+  
+  // Update button text and icon inside the title header
+  if (isCollapsed) {
+    btn.innerHTML = `
+      <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+      <span>Expandir Ejercicios</span>
+    `;
+    btn.title = "Expandir sección de ejercicios";
+  } else {
+    btn.innerHTML = `
+      <svg style="width:14px;height:14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg>
+      <span>Contraer Ejercicios</span>
+    `;
+    btn.title = "Contraer sección de ejercicios";
+  }
+  
+  // Trigger CodeMirror redraw after CSS transition completes to adapt editor to new width
+  setTimeout(() => {
+    if (type === 'sql') {
+      if (sqlEditor) sqlEditor.refresh();
+    } else {
+      if (plsqlEditor) plsqlEditor.refresh();
+    }
+  }, 320);
+}
+
+// Toggle Console (Collapse/Expand) for SQL and PL/SQL interactive panels
+function toggleConsole(type) {
+  const workspace = document.getElementById(type === 'sql' ? 'sql-lab-workspace' : 'plsql-lab-workspace');
+  const btn = document.getElementById(type === 'sql' ? 'btn-toggle-sql-console' : 'btn-toggle-plsql-console');
+  if (!workspace || !btn) return;
+  
+  const isCollapsed = workspace.classList.toggle('console-collapsed');
+  
+  // Update button content: icon and text
+  if (isCollapsed) {
+    btn.innerHTML = `
+      <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"></path></svg>
+      <span>Maximizar</span>
+    `;
+    btn.title = "Maximizar consola de resultados";
+  } else {
+    btn.innerHTML = `
+      <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+      <span>Minimizar</span>
+    `;
+    btn.title = "Minimizar consola de resultados";
+  }
+  
+  // Trigger CodeMirror redraw after CSS transition completes to adapt editor to new height
+  setTimeout(() => {
+    if (type === 'sql') {
+      if (sqlEditor) sqlEditor.refresh();
+    } else {
+      if (plsqlEditor) plsqlEditor.refresh();
+    }
+  }, 320);
 }

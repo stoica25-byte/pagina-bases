@@ -361,6 +361,7 @@ header {
   margin: -40px;
   padding: 40px;
   overflow: hidden;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1), gap 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .lab-sidebar {
@@ -371,6 +372,24 @@ header {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+/* Sidebar Collapsed State */
+.lab-container.sidebar-collapsed {
+  grid-template-columns: 0px 1fr;
+  gap: 0px;
+}
+
+.lab-container.sidebar-collapsed .lab-sidebar {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  border-color: transparent;
+  transform: translateX(-20px);
 }
 
 .lab-sidebar-header {
@@ -459,13 +478,28 @@ header {
 
 /* Custom grid row overrides to optimize editor heights */
 #panel-sql-playground .lab-workspace {
-  grid-template-rows: 1fr 200px;
+  grid-template-rows: 1fr 130px;
   gap: 15px;
+  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#panel-sql-playground .lab-workspace.console-collapsed {
+  grid-template-rows: 1fr 35px;
 }
 
 #panel-plsql-lab .lab-workspace {
-  grid-template-rows: 1fr 180px;
+  grid-template-rows: 1fr 140px;
   gap: 15px;
+  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#panel-plsql-lab .lab-workspace.console-collapsed {
+  grid-template-rows: 1fr 35px;
+}
+
+/* Console Collapsed State */
+.lab-workspace.console-collapsed .console-output {
+  display: none !important;
 }
 
 /* Exercise Instructions Box at top of Playground */
