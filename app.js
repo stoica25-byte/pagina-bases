@@ -1240,6 +1240,18 @@ function compilePLSQL() {
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/--.*$/gm, "");
 
+  // Detect DML operations inside PL/SQL to enable diff visualization
+  const dmlMatch = cleanCode.match(/(INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(\w+)/i);
+  const dmlTable = dmlMatch ? dmlMatch[2].toLowerCase() : null;
+  let beforeData = null;
+  if (dmlTable) {
+    try {
+      beforeData = JSON.parse(JSON.stringify(alasql('SELECT * FROM ' + dmlTable)));
+    } catch (e) {
+      console.warn("Failed to take PL/SQL DML snapshot before execution:", e);
+    }
+  }
+
   // Custom mock execution engine for PL/SQL syntax
   try {
     // 1. Basic lexical check: DECLARE, BEGIN, END;
@@ -1434,6 +1446,19 @@ function compilePLSQL() {
         outputs.push(evalPLSQLExpression(m[1], variables));
       }
       stdout = outputs.join('\n');
+    }
+
+    // Refresh tables view with diff if it was PL/SQL DML
+    if (dmlTable && beforeData !== null) {
+      let afterData = null;
+      try {
+        afterData = JSON.parse(JSON.stringify(alasql('SELECT * FROM ' + dmlTable)));
+      } catch (e) {
+        console.warn("Failed to take PL/SQL DML snapshot after execution:", e);
+      }
+      if (afterData !== null) {
+        showDbTableDiff(dmlTable, beforeData, afterData);
+      }
     }
 
   } catch (err) {
