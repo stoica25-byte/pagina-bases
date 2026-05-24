@@ -355,6 +355,173 @@ function showDbTable(tableName) {
   }
 }
 
+function getTableNameFromDML(query) {
+  if (!query) return null;
+  // Match INSERT INTO table_name
+  const insertMatch = query.match(/INSERT\s+INTO\s+(\w+)/i);
+  if (insertMatch) return insertMatch[1].toLowerCase();
+  
+  // Match UPDATE table_name
+  const updateMatch = query.match(/UPDATE\s+(\w+)/i);
+  if (updateMatch) return updateMatch[1].toLowerCase();
+  
+  // Match DELETE FROM table_name
+  const deleteMatch = query.match(/DELETE\s+FROM\s+(\w+)/i);
+  if (deleteMatch) return deleteMatch[1].toLowerCase();
+  
+  return null;
+}
+
+function showDbTableDiff(tableName, beforeData, afterData) {
+  activeTableTab = tableName;
+  
+  // Update active tab buttons
+  document.querySelectorAll('.table-tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.innerText.toLowerCase() === tableName.toLowerCase()) {
+      btn.classList.add('active');
+    }
+  });
+
+  // Get columns
+  let keys = [];
+  if (afterData && afterData.length > 0) {
+    keys = Object.keys(afterData[0]);
+  } else if (beforeData && beforeData.length > 0) {
+    keys = Object.keys(beforeData[0]);
+  } else {
+    // Both empty
+    document.getElementById('table-data-container').innerHTML = `
+      <div style="color:var(--text-secondary); text-align:center; padding: 40px 0;">
+        La tabla <strong>${tableName.toUpperCase()}</strong> está vacía o no tiene registros.
+      </div>`;
+    return;
+  }
+
+  // Primary Key columns for this table
+  const tablePKs = {
+    dept: ['deptno'],
+    emp: ['empno'],
+    salgrade: ['grade'],
+    equipos: ['nombre'],
+    entrenadores: ['codigo'],
+    jugadores: ['codigo'],
+    partidos: ['codigo'],
+    estadisticas: ['temporada', 'jugador'],
+    bonus: ['ename', 'job', 'sal', 'comm']
+  };
+  const pkCols = tablePKs[tableName.toLowerCase()] || keys;
+
+  // Helper to get row key
+  const getRowKey = (row) => pkCols.map(col => row[col]).join('|');
+
+  // Build maps
+  const beforeMap = {};
+  beforeData.forEach((row, idx) => {
+    const key = getRowKey(row) || idx;
+    beforeMap[key] = row;
+  });
+
+  const afterMap = {};
+  afterData.forEach((row, idx) => {
+    const key = getRowKey(row) || idx;
+    afterMap[key] = row;
+  });
+
+  // Calculate diff items
+  const diffRows = [];
+  const addedAfterKeys = new Set();
+
+  beforeData.forEach((bRow, bIdx) => {
+    const key = getRowKey(bRow) || bIdx;
+    const aRow = afterMap[key];
+
+    if (!aRow) {
+      // Row was deleted
+      diffRows.push({ status: 'deleted', data: bRow });
+    } else {
+      // Row exists in both. Check if changed.
+      let isChanged = false;
+      for (let k of keys) {
+        if (bRow[k] !== aRow[k]) {
+          isChanged = true;
+          break;
+        }
+      }
+
+      if (isChanged) {
+        // Updated row: show deleted (old) then inserted (new)
+        diffRows.push({ status: 'deleted', data: bRow });
+        diffRows.push({ status: 'inserted', data: aRow });
+      } else {
+        // Unchanged row
+        diffRows.push({ status: 'unchanged', data: aRow });
+      }
+      addedAfterKeys.add(key);
+    }
+  });
+
+  // Find any rows in afterData that were NOT in beforeData (Insertions)
+  afterData.forEach((aRow, aIdx) => {
+    const key = getRowKey(aRow) || aIdx;
+    if (!addedAfterKeys.has(key)) {
+      diffRows.push({ status: 'inserted', data: aRow });
+    }
+  });
+
+  // Render the table
+  let html = '<div style="margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; font-size:0.8rem; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); padding:8px 12px; border-radius:6px;">';
+  html += `<span style="color:#60a5fa; font-weight:600;"><svg style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Vista de Cambios (Diff de DML) en tabla ${tableName.toUpperCase()}</span>`;
+  html += `<button class="btn btn-secondary" style="padding:2px 8px; height:24px; font-size:0.75rem;" onclick="showDbTable('${tableName}')">Salir del Diff</button>`;
+  html += '</div>';
+
+  html += '<table class="db-table">';
+  
+  // Headers
+  html += '<thead><tr>';
+  html += '<th style="width:40px; text-align:center;">+/-</th>';
+  keys.forEach(k => {
+    html += `<th>${k}</th>`;
+  });
+  html += '</tr></thead>';
+  
+  // Rows
+  html += '<tbody>';
+  diffRows.forEach(item => {
+    let rowClass = "";
+    let indicator = "";
+    let indicatorStyle = "";
+    
+    if (item.status === 'deleted') {
+      rowClass = 'class="diff-row-deleted"';
+      indicator = "-";
+      indicatorStyle = 'style="color:#f87171; font-weight:bold; text-align:center;"';
+    } else if (item.status === 'inserted') {
+      rowClass = 'class="diff-row-inserted"';
+      indicator = "+";
+      indicatorStyle = 'style="color:#4ade80; font-weight:bold; text-align:center;"';
+    } else {
+      indicator = " ";
+      indicatorStyle = 'style="color:var(--text-muted); text-align:center;"';
+    }
+
+    html += `<tr ${rowClass}>`;
+    html += `<td ${indicatorStyle}>${indicator}</td>`;
+    
+    keys.forEach(k => {
+      let val = item.data[k];
+      if (val === null || val === undefined) {
+        val = '<span style="color:var(--text-muted);font-style:italic;">NULL</span>';
+      }
+      html += `<td>${val}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  
+  document.getElementById('table-data-container').innerHTML = html;
+}
+
 function resetDbTables() {
   initDatabase();
   showDbTable(activeTableTab);
@@ -874,8 +1041,16 @@ function executeSQLQuery() {
   try {
     let processedQuery = query;
     const isModifying = /^\s*(DELETE|UPDATE|INSERT)/i.test(query);
+    const dmlTable = isModifying ? getTableNameFromDML(query) : null;
     
-    if (isModifying) {
+    let beforeData = null;
+    if (isModifying && dmlTable) {
+      try {
+        beforeData = JSON.parse(JSON.stringify(alasql('SELECT * FROM ' + dmlTable)));
+      } catch (e) {
+        console.warn("Failed to take DML snapshot before execution:", e);
+      }
+      
       try {
         processedQuery = preprocessSQL(query);
         console.log("Preprocessed DML SQL:", processedQuery);
@@ -887,8 +1062,23 @@ function executeSQLQuery() {
     // Run query using Alasql
     const result = alasql(processedQuery);
     
-    // Refresh tables view
-    showDbTable(activeTableTab);
+    // Refresh tables view with diff if it was DML
+    if (isModifying && dmlTable && beforeData !== null) {
+      let afterData = null;
+      try {
+        afterData = JSON.parse(JSON.stringify(alasql('SELECT * FROM ' + dmlTable)));
+      } catch (e) {
+        console.warn("Failed to take DML snapshot after execution:", e);
+      }
+      
+      if (afterData !== null) {
+        showDbTableDiff(dmlTable, beforeData, afterData);
+      } else {
+        showDbTable(activeTableTab);
+      }
+    } else {
+      showDbTable(activeTableTab);
+    }
     
     let htmlContent = "";
     

@@ -850,6 +850,22 @@ table.db-table tr:hover td {
   background-color: rgba(255, 255, 255, 0.01);
 }
 
+table.db-table tr.diff-row-deleted td {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  color: #fca5a5 !important;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2) !important;
+}
+table.db-table tr.diff-row-deleted td:not(:first-child) {
+  text-decoration: line-through;
+  text-decoration-color: rgba(239, 68, 68, 0.5);
+}
+
+table.db-table tr.diff-row-inserted td {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  color: #a7f3d0 !important;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
 /* Theory & Cheat sheets */
 .topic-container {
   display: grid;
