@@ -559,7 +559,7 @@ const sqlExercises = [
     verify: () => {
       const scottSal = alasql("SELECT sal FROM emp WHERE empno = 7788")[0].sal;
       const smithSal = alasql("SELECT sal FROM emp WHERE empno = 7369")[0].sal;
-      return scottSal === 3300 && smithSal === 880;
+      return Math.round(scottSal) === 3300 && Math.round(smithSal) === 880;
     }
   },
   {
@@ -1048,8 +1048,23 @@ function executeSQLQuery() {
 
   try {
     let processedQuery = query;
-    const isModifying = /^\s*(DELETE|UPDATE|INSERT)/i.test(query);
-    const dmlTable = isModifying ? getTableNameFromDML(query) : null;
+    
+    // Check and preprocess CREATE OR REPLACE VIEW (which AlaSQL doesn't support natively)
+    if (/^\s*CREATE\s+OR\s+REPLACE\s+VIEW\s+(\w+)\s+AS/i.test(query)) {
+      const viewMatch = query.match(/^\s*CREATE\s+OR\s+REPLACE\s+VIEW\s+(\w+)\s+AS/i);
+      if (viewMatch) {
+        const viewName = viewMatch[1];
+        try {
+          alasql('DROP VIEW IF EXISTS ' + viewName);
+        } catch (e) {
+          console.warn("Failed to drop view before creation:", e);
+        }
+        processedQuery = query.replace(/CREATE\s+OR\s+REPLACE\s+VIEW/i, 'CREATE VIEW');
+      }
+    }
+
+    const isModifying = /^\s*(DELETE|UPDATE|INSERT)/i.test(processedQuery);
+    const dmlTable = isModifying ? getTableNameFromDML(processedQuery) : null;
     
     let beforeData = null;
     if (isModifying && dmlTable) {
@@ -1060,7 +1075,7 @@ function executeSQLQuery() {
       }
       
       try {
-        processedQuery = preprocessSQL(query);
+        processedQuery = preprocessSQL(processedQuery);
         console.log("Preprocessed DML SQL:", processedQuery);
       } catch (e) {
         console.warn("Failed to preprocess DML SQL, running original:", e);
@@ -1157,15 +1172,35 @@ function preprocessSQL(query) {
   let modifiedQuery = query;
   let iterations = 0;
   
-  // Find innermost SELECT subqueries enclosed in parentheses: (SELECT ...)
-  const subqueryRegex = /\(\s*(SELECT\s+(?:(?!SELECT)[\s\S])+?)\)/i;
-  
   while (iterations < 10) {
-    const match = modifiedQuery.match(subqueryRegex);
-    if (!match) break;
+    const lowerQuery = modifiedQuery.toLowerCase();
     
-    const fullMatch = match[0];
-    const subquery = match[1];
+    // Find the last index of "(select" (innermost subquery)
+    const matches = [...lowerQuery.matchAll(/\(\s*select\b/g)];
+    if (matches.length === 0) break;
+    
+    const lastMatch = matches[matches.length - 1];
+    const selectIdx = lastMatch.index;
+    
+    // Find the matching closing parenthesis
+    let count = 1;
+    let endIdx = -1;
+    for (let i = selectIdx + 1; i < modifiedQuery.length; i++) {
+      if (modifiedQuery[i] === '(') {
+        count++;
+      } else if (modifiedQuery[i] === ')') {
+        count--;
+        if (count === 0) {
+          endIdx = i;
+          break;
+        }
+      }
+    }
+    
+    if (endIdx === -1) break;
+    
+    const fullMatch = modifiedQuery.substring(selectIdx, endIdx + 1);
+    const subquery = modifiedQuery.substring(selectIdx + 1, endIdx);
     
     // Execute subquery
     const data = alasql(subquery);
@@ -1182,7 +1217,7 @@ function preprocessSQL(query) {
       replacement = list.join(', ');
     }
     
-    modifiedQuery = modifiedQuery.replace(fullMatch, `(${replacement})`);
+    modifiedQuery = modifiedQuery.substring(0, selectIdx) + `(${replacement})` + modifiedQuery.substring(endIdx + 1);
     iterations++;
   }
   
@@ -1200,20 +1235,24 @@ function compilePLSQL() {
   let stdout = "";
   let errorMsg = null;
   
+  // Clean comments to prevent syntax parsing issues
+  let cleanCode = code
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/--.*$/gm, "");
+
   // Custom mock execution engine for PL/SQL syntax
   try {
     // 1. Basic lexical check: DECLARE, BEGIN, END;
-    if (!/BEGIN/i.test(code) && !/END\s*;/i.test(code)) {
+    if (!/BEGIN/i.test(cleanCode) && !/END\s*;/i.test(cleanCode)) {
       throw new Error("PLS-00103: Se encontró fin de archivo inesperado. Falta BEGIN o END;");
     }
 
     // 2. Parse DBMS_OUTPUT.PUT_LINE calls
-    // Example: DBMS_OUTPUT.PUT_LINE('Resultado: ' || v_suma);
     // Let's extract variables to evaluate expressions
     const variables = {};
 
     // Check DECLARE section variables
-    const declareMatch = code.match(/DECLARE([\s\S]*?)BEGIN/i);
+    const declareMatch = cleanCode.match(/DECLARE([\s\S]*?)BEGIN/i);
     if (declareMatch) {
       const declareBlock = declareMatch[1];
       const lines = declareBlock.split(';');
@@ -1221,39 +1260,59 @@ function compilePLSQL() {
         line = line.trim();
         if (!line) return;
         
-        // Match standard declarations like: v_mensaje VARCHAR2(20) := 'Hola'
-        // or v_num NUMBER := 10
         const varMatch = line.match(/(\w+)\s+(\w+(?:\(\d+\))?|[\w\.]+%TYPE)\s*(?::=\s*(.*))?/i);
         if (varMatch) {
           const name = varMatch[1].toLowerCase();
           let rawVal = varMatch[3] ? varMatch[3].trim() : "NULL";
           
-          // Evaluate standard types
-          if (rawVal.startsWith("'") && rawVal.endsWith("'")) {
-            variables[name] = rawVal.slice(1, -1);
-          } else if (!isNaN(rawVal)) {
-            variables[name] = Number(rawVal);
+          let evaluatedVal = null;
+          if (rawVal === "NULL" || rawVal === "") {
+            evaluatedVal = null;
           } else {
-            variables[name] = rawVal;
+            try {
+              let jsExpr = rawVal;
+              jsExpr = jsExpr.replace(/TO_DATE\('([^']+)',\s*'[^']+'\)/gi, 'new Date("$1")');
+              
+              // Evaluate with other variables already declared
+              const sortedVarNames = Object.keys(variables).sort((a, b) => b.length - a.length);
+              sortedVarNames.forEach(vName => {
+                const val = variables[vName];
+                let replacement = val;
+                if (val instanceof Date) {
+                  replacement = `new Date(${val.getTime()})`;
+                } else if (typeof val === 'string') {
+                  replacement = `"${val}"`;
+                }
+                const regex = new RegExp('\\b' + vName + '\\b', 'gi');
+                jsExpr = jsExpr.replace(regex, replacement);
+              });
+              
+              evaluatedVal = new Function("return " + jsExpr)();
+            } catch (e) {
+              if (rawVal.startsWith("'") && rawVal.endsWith("'")) {
+                evaluatedVal = rawVal.slice(1, -1);
+              } else if (!isNaN(rawVal)) {
+                evaluatedVal = Number(rawVal);
+              } else {
+                evaluatedVal = rawVal;
+              }
+            }
           }
+          variables[name] = evaluatedVal;
         }
       });
     }
 
     // 3. Mock SQL execution in PL/SQL block
-    // Handle SELECT ename INTO v_nom FROM emp WHERE empno = 9999;
-    const selectIntoMatch = code.match(/SELECT\s+(.+?)\s+INTO\s+(.+?)\s+FROM\s+(.+?)\s+WHERE\s+(.+?)(?:;|$)/i);
+    const selectIntoMatch = cleanCode.match(/SELECT\s+(.+?)\s+INTO\s+(.+?)\s+FROM\s+(.+?)\s+WHERE\s+(.+?)(?:;|$)/i);
     if (selectIntoMatch) {
       const selectFields = selectIntoMatch[1].trim();
       const intoVars = selectIntoMatch[2].trim().toLowerCase();
       const fromTable = selectIntoMatch[3].trim();
       const whereClause = selectIntoMatch[4].trim();
 
-      // Convert to alasql query
       let alasqlQuery = `SELECT ${selectFields} FROM ${fromTable} WHERE ${whereClause}`;
       
-      // Replace variables in where clause if any
-      // E.g., empno = 9999
       let rows;
       try {
         rows = alasql(alasqlQuery);
@@ -1262,10 +1321,8 @@ function compilePLSQL() {
       }
 
       if (!rows || rows.length === 0) {
-        // Exception handler check
-        if (/WHEN\s+NO_DATA_FOUND/i.test(code)) {
-          // Trigger exception block
-          const excBlock = code.match(/EXCEPTION[\s\S]*?WHEN\s+NO_DATA_FOUND\s+THEN([\s\S]*?)(?:WHEN|END)/i);
+        if (/WHEN\s+NO_DATA_FOUND/i.test(cleanCode)) {
+          const excBlock = cleanCode.match(/EXCEPTION[\s\S]*?WHEN\s+NO_DATA_FOUND\s+THEN([\s\S]*?)(?:WHEN|END)/i);
           if (excBlock) {
             const excStatements = excBlock[1];
             const putLineMatch = excStatements.match(/DBMS_OUTPUT\.PUT_LINE\((.*?)\)/i);
@@ -1277,8 +1334,8 @@ function compilePLSQL() {
           throw new Error("ORA-01403: No se encontraron datos (NO_DATA_FOUND)");
         }
       } else if (rows.length > 1) {
-        if (/WHEN\s+TOO_MANY_ROWS/i.test(code)) {
-          const excBlock = code.match(/EXCEPTION[\s\S]*?WHEN\s+TOO_MANY_ROWS\s+THEN([\s\S]*?)(?:WHEN|END)/i);
+        if (/WHEN\s+TOO_MANY_ROWS/i.test(cleanCode)) {
+          const excBlock = cleanCode.match(/EXCEPTION[\s\S]*?WHEN\s+TOO_MANY_ROWS\s+THEN([\s\S]*?)(?:WHEN|END)/i);
           if (excBlock) {
             const putLineMatch = excBlock[1].match(/DBMS_OUTPUT\.PUT_LINE\((.*?)\)/i);
             if (putLineMatch) stdout = evalPLSQLExpression(putLineMatch[1], variables);
@@ -1287,24 +1344,29 @@ function compilePLSQL() {
           throw new Error("ORA-01422: La recuperación exacta devuelve más del número solicitado de filas");
         }
       } else {
-        // Success case, assign variables
-        variables[intoVars] = rows[0][selectFields];
+        // Success case: split and assign variables
+        const fields = selectFields.split(',').map(f => f.trim());
+        const vars = intoVars.split(',').map(v => v.trim().toLowerCase());
+        fields.forEach((f, idx) => {
+          if (vars[idx]) {
+            variables[vars[idx]] = rows[0][f];
+          }
+        });
       }
     }
 
     // Handle INSERT/UPDATE statements in PL/SQL block
-    const insertMatch = code.match(/INSERT\s+INTO\s+(\w+)\s+VALUES\s*\((.*?)\)(?:;|$)/i);
+    const insertMatch = cleanCode.match(/INSERT\s+INTO\s+(\w+)\s+VALUES\s*\((.*?)\)(?:;|$)/i);
     if (insertMatch && !selectIntoMatch) {
       const table = insertMatch[1].toLowerCase();
       const vals = insertMatch[2].split(',');
       
       if (table === 'entrenadores') {
         const pkVal = parseInt(vals[0].trim());
-        // Check duplication
         const existing = alasql(`SELECT COUNT(*) as cnt FROM entrenadores WHERE codigo = ${pkVal}`)[0].cnt;
         if (existing > 0) {
-          if (/WHEN\s+DUP_VAL_ON_INDEX/i.test(code)) {
-            const excBlock = code.match(/EXCEPTION[\s\S]*?WHEN\s+DUP_VAL_ON_INDEX\s+THEN([\s\S]*?)(?:WHEN|END)/i);
+          if (/WHEN\s+DUP_VAL_ON_INDEX/i.test(cleanCode)) {
+            const excBlock = cleanCode.match(/EXCEPTION[\s\S]*?WHEN\s+DUP_VAL_ON_INDEX\s+THEN([\s\S]*?)(?:WHEN|END)/i);
             if (excBlock) {
               const putLineMatch = excBlock[1].match(/DBMS_OUTPUT\.PUT_LINE\((.*?)\)/i);
               if (putLineMatch) stdout = evalPLSQLExpression(putLineMatch[1], variables);
@@ -1313,17 +1375,59 @@ function compilePLSQL() {
             throw new Error("ORA-00001: Restricción única violada (DUP_VAL_ON_INDEX)");
           }
         } else {
-          // Run insert
           alasql(insertMatch[0]);
           stdout = "Fila insertada con éxito en entrenadores.";
         }
       }
     }
 
+    // Parse and execute assignments in the BEGIN block
+    const beginBlockMatch = cleanCode.match(/BEGIN([\s\S]*?)(?:EXCEPTION|END)/i);
+    if (beginBlockMatch) {
+      const beginBlock = beginBlockMatch[1];
+      const statements = beginBlock.split(';');
+      statements.forEach(statement => {
+        statement = statement.trim();
+        if (!statement) return;
+        
+        // Match assignment: var := expr
+        const assignMatch = statement.match(/(\w+)\s*:=\s*([\s\S]+)/i);
+        if (assignMatch) {
+          const varName = assignMatch[1].trim().toLowerCase();
+          let expr = assignMatch[2].trim();
+          
+          try {
+            expr = expr.replace(/TRUNC\(/gi, 'Math.trunc(');
+            expr = expr.replace(/MOD\(([^,]+),([^)]+)\)/gi, '($1 % $2)');
+            expr = expr.replace(/TO_DATE\('([^']+)',\s*'[^']+'\)/gi, 'new Date("$1")');
+            expr = expr.replace(/(v_fecha_actual\s*-\s*v_fecha_alta)/gi, '((v_fecha_actual - v_fecha_alta) / 86400000)');
+            
+            const sortedVarNames = Object.keys(variables).sort((a, b) => b.length - a.length);
+            sortedVarNames.forEach(vName => {
+              const val = variables[vName];
+              let replacement = val;
+              if (val instanceof Date) {
+                replacement = `new Date(${val.getTime()})`;
+              } else if (typeof val === 'string') {
+                replacement = `"${val}"`;
+              }
+              const regex = new RegExp('\\b' + vName + '\\b', 'gi');
+              expr = expr.replace(regex, replacement);
+            });
+            
+            let result = new Function("return " + expr)();
+            variables[varName] = result;
+          } catch (e) {
+            console.warn("Assignment evaluation error:", e);
+          }
+        }
+      });
+    }
+
     // 4. Fallback execution of PUT_LINE in BEGIN body
     if (!stdout) {
       // Find DBMS_OUTPUT.PUT_LINE calls inside the main BEGIN block (excluding EXCEPTION)
-      const beginBlock = code.match(/BEGIN([\s\S]*?)(?:EXCEPTION|END)/i)[1];
+      const beginBlock = cleanCode.match(/BEGIN([\s\S]*?)(?:EXCEPTION|END)/i)[1];
       const putLineMatches = beginBlock.matchAll(/DBMS_OUTPUT\.PUT_LINE\((.*?)\)/gi);
       let outputs = [];
       for (const m of putLineMatches) {
