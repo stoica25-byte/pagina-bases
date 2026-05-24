@@ -18,9 +18,9 @@ function initDatabase() {
 
     // Create SCOTT tables
     alasql('CREATE TABLE dept (deptno INT PRIMARY KEY, dname STRING, loc STRING)');
-    alasql('CREATE TABLE emp (empno INT PRIMARY KEY, ename STRING, job STRING, mgr INT, hiredate STRING, sal INT, comm INT, deptno INT)');
+    alasql('CREATE TABLE emp (empno INT PRIMARY KEY, ename STRING, job STRING, mgr, hiredate STRING, sal INT, comm, deptno INT)');
     alasql('CREATE TABLE salgrade (grade INT PRIMARY KEY, losal INT, hisal INT)');
-    alasql('CREATE TABLE bonus (ename STRING, job STRING, sal INT, comm INT)');
+    alasql('CREATE TABLE bonus (ename STRING, job STRING, sal INT, comm)');
 
     // Insert DEPT seed data
     alasql('INSERT INTO dept VALUES (10, "ACCOUNTING", "NEW YORK")');
@@ -810,8 +810,20 @@ function executeSQLQuery() {
   }
 
   try {
+    let processedQuery = query;
+    const isModifying = /^\s*(DELETE|UPDATE|INSERT)/i.test(query);
+    
+    if (isModifying) {
+      try {
+        processedQuery = preprocessSQL(query);
+        console.log("Preprocessed DML SQL:", processedQuery);
+      } catch (e) {
+        console.warn("Failed to preprocess DML SQL, running original:", e);
+      }
+    }
+    
     // Run query using Alasql
-    const result = alasql(query);
+    const result = alasql(processedQuery);
     
     // Refresh tables view
     showDbTable(activeTableTab);
@@ -878,6 +890,43 @@ function executeSQLQuery() {
       <pre style="margin-top: 5px; color: var(--accent-red); font-family: inherit; white-space: pre-wrap;">${err.message}</pre>`;
     consoleEl.className = "console-output error";
   }
+}
+
+// Preprocessor to resolve DML subqueries (workaround for AlaSQL 'p is not defined' compiler bugs)
+function preprocessSQL(query) {
+  let modifiedQuery = query;
+  let iterations = 0;
+  
+  // Find innermost SELECT subqueries enclosed in parentheses: (SELECT ...)
+  const subqueryRegex = /\(\s*(SELECT\s+(?:(?!SELECT)[\s\S])+?)\)/i;
+  
+  while (iterations < 10) {
+    const match = modifiedQuery.match(subqueryRegex);
+    if (!match) break;
+    
+    const fullMatch = match[0];
+    const subquery = match[1];
+    
+    // Execute subquery
+    const data = alasql(subquery);
+    let replacement = "NULL";
+    
+    if (data && data.length > 0) {
+      const keys = Object.keys(data[0]);
+      const list = data.map(row => {
+        const val = row[keys[0]];
+        if (typeof val === 'string') return `'${val}'`;
+        if (val === null || val === undefined) return "NULL";
+        return val;
+      });
+      replacement = list.join(', ');
+    }
+    
+    modifiedQuery = modifiedQuery.replace(fullMatch, `(${replacement})`);
+    iterations++;
+  }
+  
+  return modifiedQuery;
 }
 
 // ==========================================
