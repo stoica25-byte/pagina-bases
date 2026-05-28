@@ -1,9 +1,32 @@
 // ==========================================
+// Helper functions
+// ==========================================
+
+function normalizeSQLCase(query) {
+  if (!query) return "";
+  let result = "";
+  let inSingleQuote = false;
+  for (let i = 0; i < query.length; i++) {
+    const char = query[i];
+    if (char === "'") {
+      inSingleQuote = !inSingleQuote;
+      result += char;
+    } else if (inSingleQuote) {
+      result += char;
+    } else {
+      result += char.toLowerCase();
+    }
+  }
+  return result;
+}
+
+// ==========================================
 // Database Init & Alasql Setup
 // ==========================================
 
 // Initialize standard SCOTT and NBA tables
 function initDatabase() {
+  alasql.options.casesensitive = false;
   try {
     // Clear existing tables
     alasql('DROP TABLE IF EXISTS emp');
@@ -1124,7 +1147,7 @@ function executeSQLQuery() {
   }
 
   try {
-    let processedQuery = query;
+    let processedQuery = normalizeSQLCase(query);
     
     // Check and preprocess CREATE OR REPLACE VIEW (which AlaSQL doesn't support natively)
     if (/^\s*CREATE\s+OR\s+REPLACE\s+VIEW\s+(\w+)\s+AS/i.test(query)) {
@@ -1462,6 +1485,28 @@ function translateBlock(blockText) {
   let jsBlock = "";
   let accumulatedStatement = "";
   
+  const splitStatements = (text) => {
+    const statements = [];
+    let current = "";
+    let inString = false;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === "'") {
+        inString = !inString;
+      }
+      if (char === ';' && !inString) {
+        statements.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    if (current.trim()) {
+      statements.push(current.trim());
+    }
+    return statements;
+  };
+
   for (let i = 0; i < rawLines.length; i++) {
     const rawLine = rawLines[i].trim();
     if (!rawLine) continue;
@@ -1476,21 +1521,30 @@ function translateBlock(blockText) {
       /^\s*END\s+LOOP\s*;?\s*$/i.test(rawLine)
     ) {
       if (accumulatedStatement.trim()) {
-        jsBlock += translateSingleStatement(accumulatedStatement.trim()) + "\n";
+        const parts = splitStatements(accumulatedStatement);
+        parts.forEach(part => {
+          if (part) jsBlock += translateSingleStatement(part) + "\n";
+        });
         accumulatedStatement = "";
       }
       jsBlock += translateControlLine(rawLine) + "\n";
     } else {
       accumulatedStatement += " " + rawLine;
       if (rawLine.endsWith(';')) {
-        jsBlock += translateSingleStatement(accumulatedStatement.trim()) + "\n";
+        const parts = splitStatements(accumulatedStatement);
+        parts.forEach(part => {
+          if (part) jsBlock += translateSingleStatement(part) + "\n";
+        });
         accumulatedStatement = "";
       }
     }
   }
   
   if (accumulatedStatement.trim()) {
-    jsBlock += translateSingleStatement(accumulatedStatement.trim()) + "\n";
+    const parts = splitStatements(accumulatedStatement);
+    parts.forEach(part => {
+      if (part) jsBlock += translateSingleStatement(part) + "\n";
+    });
   }
   
   return jsBlock;
@@ -1559,7 +1613,8 @@ function resolveQueryVars(query, env) {
 }
 
 function compilePLSQL() {
-  const code = plsqlEditor.getValue().trim();
+  const rawCode = plsqlEditor.getValue().trim();
+  const code = normalizeSQLCase(rawCode);
   const consoleEl = document.getElementById('plsql-console');
   
   let stdout = "";
@@ -1579,6 +1634,12 @@ function compilePLSQL() {
       console.warn("Failed to take PL/SQL DML snapshot before execution:", e);
     }
   }
+
+  // Intercept Date valueOf for PL/SQL date subtraction (returns days instead of ms)
+  const originalValueOf = Date.prototype.valueOf;
+  Date.prototype.valueOf = function() {
+    return this.getTime() / 86400000;
+  };
 
   try {
     if (!/BEGIN/i.test(cleanCode) || !/END\s*;/i.test(cleanCode)) {
@@ -1717,7 +1778,7 @@ function compilePLSQL() {
     const executeQuery = (query, currentEnv) => {
       const resolved = resolveQueryVars(query, currentEnv);
       try {
-        return alasql(resolved);
+        return alasql(normalizeSQLCase(resolved));
       } catch (err) {
         throw new Error(`ORA-00904: identificador no válido en SQL: ${err.message}`);
       }
@@ -1734,7 +1795,7 @@ function compilePLSQL() {
       const resolved = resolveQueryVars(fullQuery, currentEnv);
       let rows;
       try {
-        rows = alasql(resolved);
+        rows = alasql(normalizeSQLCase(resolved));
       } catch (err) {
         throw new Error(`ORA-00904: identificador no válido en SQL interno: ${err.message}`);
       }
@@ -1768,8 +1829,9 @@ function compilePLSQL() {
     const executeDML = (dmlStr, currentEnv) => {
       const resolved = resolveQueryVars(dmlStr, currentEnv);
       try {
-        if (/INSERT\s+INTO\s+entrenadores/i.test(resolved)) {
-          const insertMatch = resolved.match(/INSERT\s+INTO\s+entrenadores\s*(?:\([^)]+\))?\s*VALUES\s*\(([\s\S]*?)\)/i);
+        const normalized = normalizeSQLCase(resolved);
+        if (/INSERT\s+INTO\s+entrenadores/i.test(normalized)) {
+          const insertMatch = normalized.match(/INSERT\s+INTO\s+entrenadores\s*(?:\([^)]+\))?\s*VALUES\s*\(([\s\S]*?)\)/i);
           if (insertMatch) {
             const vals = insertMatch[1].split(',');
             const pkVal = parseInt(vals[0].trim());
@@ -1779,7 +1841,7 @@ function compilePLSQL() {
             }
           }
         }
-        alasql(resolved);
+        alasql(normalized);
       } catch (err) {
         if (err.message === "DUP_VAL_ON_INDEX") {
           throw err;
@@ -1820,18 +1882,22 @@ function compilePLSQL() {
     const executorFn = new Function(
       "env", "executeQuery", "openCursor", "selectInto", "executeDML",
       "dbms_output_put_line", "SUBSTR", "LENGTH", "TRUNC", "MOD", "TO_DATE",
+      "substr", "length", "trunc", "mod", "to_date",
       `with (env) {\n${jsCode}\n}`
     );
 
     executorFn(
       env, executeQuery, openCursor, selectInto, executeDML,
-      dbms_output_put_line, SUBSTR, LENGTH, TRUNC, MOD, TO_DATE
+      dbms_output_put_line, SUBSTR, LENGTH, TRUNC, MOD, TO_DATE,
+      SUBSTR, LENGTH, TRUNC, MOD, TO_DATE
     );
     
     if (stdout.endsWith("\n")) stdout = stdout.slice(0, -1);
 
   } catch (err) {
     errorMsg = err.message;
+  } finally {
+    Date.prototype.valueOf = originalValueOf;
   }
 
   if (dmlTable && beforeData !== null) {
